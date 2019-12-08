@@ -4,6 +4,7 @@ import csv
 
 from tqdm import tqdm
 from urllib.request import Request, urlopen
+from urllib.error import HTTPError
 import os
 
 def get_ids():
@@ -33,7 +34,10 @@ for url in tqdm(urls):
     if os.path.exists(file_name):
         continue
 
-    request = Request(url)
-    image_file = open(file_name, 'wb')
-    image_file.write(urlopen(request).read())
-    image_file.close()
+    try:
+        request = Request(url)
+        image_file = open(file_name, 'wb')
+        image_file.write(urlopen(request).read())
+        image_file.close()
+    except HTTPError:
+        print("Error downloading file {:s}".format(image_id))
