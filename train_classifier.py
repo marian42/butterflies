@@ -8,6 +8,7 @@ import torchvision
 import sys
 from torch.utils.data import DataLoader
 from torchvision import utils
+from tqdm import tqdm
 
 from classifier import Classifier
 
@@ -15,6 +16,10 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 CLASSIFIER_FILENAME = 'trained_models/classifier.to'
 
 classifier = Classifier()
+try:
+    classifier.load_state_dict(torch.load(CLASSIFIER_FILENAME))
+except:
+    print("Found no model, training a new one.")
 classifier.cuda()
 
 from mask_loader import MaskDataset
@@ -36,12 +41,12 @@ def save_example(epoch, hash, image, mask):
     result = image.clone().squeeze(0)
     result *= mask
 
-    utils.save_image(result, 'data/generated/{:04d}-{:s}.jpg'.format(epoch, hash))
+    utils.save_image(result, 'data/generated/{:s}.png'.format(hash))
 
 def train():
     for epoch in count():
         loss_history = []
-        for batch in data_loader:
+        for batch in tqdm(data_loader):
             image, mask, hash = batch
             image = image.to(device)
             mask = mask.to(device)
@@ -55,7 +60,7 @@ def train():
             error = loss.item()
             loss_history.append(error)
 
-            if epoch % 10 == 0:
+            if epoch % 20 == 0:
                 save_example(epoch, hash[0], image, output)
         print(epoch, np.mean(loss_history))
         if epoch % 10 == 0:

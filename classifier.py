@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 
-BREADTH = 8
+BREADTH = 16
 
 class BlockDown(nn.Module):
     def __init__(self, in_channels, out_channels):
