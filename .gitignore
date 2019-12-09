@@ -1,2 +1,8 @@
 
 data/
+
+__pycache__/
+
+.vscode/
+
+trained_models/
