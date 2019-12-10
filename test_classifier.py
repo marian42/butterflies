@@ -27,6 +27,13 @@ classifier.eval()
 
 file_names = glob.glob('data/raw/**.jpg', recursive=True)
 
+def clip_mask(mask, clipping_range = 0.2):
+    mask = (mask - 0.5) * 2
+    mask.clamp_(-clipping_range, clipping_range)
+    mask /= clipping_range
+    mask = mask / 2 + 0.5
+    return mask
+
 with torch.no_grad():
     while True:
         file_name = random.choice(file_names)
@@ -34,8 +41,9 @@ with torch.no_grad():
 
         image = load_image(file_name).to(device)
         mask = classifier(image.unsqueeze(0)).squeeze(0)
-
-
+        mask = clip_mask(mask)
+        
+        
         copyfile(file_name, 'data/test/{:s}.jpg'.format(hash))
         utils.save_image(mask, 'data/test/{:s}_mask.png'.format(hash))
         image *= mask
