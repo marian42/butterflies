@@ -26,9 +26,6 @@ from mask_loader import MaskDataset
 dataset = MaskDataset()
 data_loader = DataLoader(dataset, shuffle=True, num_workers=4)
 
-if "continue" in sys.argv:
-    classifier.load_state_dict(torch.load(CLASSIFIER_FILENAME))
-
 optimizer = optim.Adam(classifier.parameters(), lr=0.001)
 criterion = nn.BCELoss()
 
@@ -60,10 +57,9 @@ def train():
             error = loss.item()
             loss_history.append(error)
 
-            if epoch % 20 == 0:
+            if epoch % 10 == 0 and epoch != 0:
                 save_example(epoch, hash[0], image, output)
         print(epoch, np.mean(loss_history))
-        if epoch % 10 == 0:
-            torch.save(classifier.state_dict(), CLASSIFIER_FILENAME)
+        torch.save(classifier.state_dict(), CLASSIFIER_FILENAME)
 
 train()
