@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 
-BREADTH = 16
+BREADTH = 8
 
 class BlockDown(nn.Module):
     def __init__(self, in_channels, out_channels):
@@ -77,7 +77,11 @@ class Classifier(nn.Module):
             BlockDown(BREADTH * 1, BREADTH * 2),
             BlockDown(BREADTH * 2, BREADTH * 4),
             BlockDown(BREADTH * 4, BREADTH * 8),
+            BlockDown(BREADTH * 8, BREADTH * 8),
+            BlockDown(BREADTH * 8, BREADTH * 8),
             Block(BREADTH * 8, BREADTH * 8),
+            BlockUp(BREADTH * 8, BREADTH * 8),
+            BlockUp(BREADTH * 8, BREADTH * 8),
             BlockUp(BREADTH * 8, BREADTH * 4),
             BlockUp(BREADTH * 4, BREADTH * 2),
             BlockUp(BREADTH * 2, BREADTH * 1),

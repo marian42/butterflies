@@ -5,14 +5,16 @@ import numpy as np
 import glob
 from skimage import io, transform
 
+BLOCK_SIZE = 64
+
 def load_image(file_name, is_bw=False):
     image = io.imread(file_name)
 
     while min(image.shape[0], image.shape[1]) >= 1024:
         image = transform.resize(image, (image.shape[0] // 2, image.shape[1] // 2), preserve_range=True)
     
-    width = image.shape[0] // 16 * 16
-    height = image.shape[1] // 16 * 16
+    width = image.shape[0] // BLOCK_SIZE * BLOCK_SIZE
+    height = image.shape[1] // BLOCK_SIZE * BLOCK_SIZE
     image = image.transpose((2, 0, 1)).astype(np.float32) / 255
     image = image[:, :width, :height]
 
