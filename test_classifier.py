@@ -13,6 +13,7 @@ import glob
 from skimage import io
 import os
 from shutil import copyfile
+from mask_loader import load_image
 
 from classifier import Classifier
 
@@ -31,18 +32,11 @@ with torch.no_grad():
         file_name = random.choice(file_names)
         hash = file_name.split('/')[-1][:-4]
 
-        image = io.imread(file_name)
-        image = image.transpose((2, 0, 1)).astype(np.float32) / 255
-        width = image.shape[1] // 16 * 16
-        height = image.shape[2] // 16 * 16
-        image = image[:, :width, :height]
-        image = torch.from_numpy(image).to(device)
+        image = load_image(file_name).to(device)
         mask = classifier(image.unsqueeze(0)).squeeze(0)
 
-        mask_binary = torch.zeros(mask.shape).to(device)
-        mask_binary[mask > 0.5] = 1
 
         copyfile(file_name, 'data/test/{:s}.jpg'.format(hash))
-        utils.save_image(mask_binary, 'data/test/{:s}_mask.png'.format(hash))
-        image *= mask_binary
+        utils.save_image(mask, 'data/test/{:s}_mask.png'.format(hash))
+        image *= mask
         utils.save_image(image, 'data/test/{:s}_result.png'.format(hash))
