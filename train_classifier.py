@@ -24,17 +24,17 @@ classifier.cuda()
 
 from mask_loader import MaskDataset
 dataset = MaskDataset()
-data_loader = DataLoader(dataset, shuffle=True, num_workers=4)
+data_loader = DataLoader(dataset, batch_size=8, shuffle=True, num_workers=4)
 
-optimizer = optim.Adam(classifier.parameters(), lr=0.0002)
+optimizer = optim.Adam(classifier.parameters(), lr=0.0005)
 criterion = nn.BCELoss()
 
 def save_example(epoch, hash, image, mask):
     mask_binary = torch.zeros(mask.shape)
     mask_binary[mask > 0.5] = 1
-    w, h = mask.shape[1] // 2, mask.shape[2] // 2
-    mask[:, :w, :h] = mask_binary[:, :w, :h]
-    mask[:, w:, h:] = mask_binary[:, w:, h:]
+    w, h = mask.shape[0] // 2, mask.shape[1] // 2
+    mask[:w, :h] = mask_binary[:w, :h]
+    mask[w:, h:] = mask_binary[w:, h:]
     result = image.clone().squeeze(0)
     result *= mask
 
@@ -58,7 +58,8 @@ def train():
             loss_history.append(error)
 
             if epoch % 5 == 0 and epoch != 0:
-                save_example(epoch, hash[0], image, output)
+                for i in range(image.shape[0]):
+                    save_example(epoch, hash[i], image[i, :, :], output[i, :, :])
         print(epoch, np.mean(loss_history))
         torch.save(classifier.state_dict(), CLASSIFIER_FILENAME)
 

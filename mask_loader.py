@@ -5,23 +5,27 @@ import numpy as np
 import glob
 from skimage import io, transform
 
-BLOCK_SIZE = 64
+WIDTH = 1152 # 128 * 9
+HEIGHT = 768 # 128 * 6
 
 def load_image(file_name, is_bw=False):
     image = io.imread(file_name)
 
-    while min(image.shape[0], image.shape[1]) >= 1024:
-        image = transform.resize(image, (image.shape[0] // 2, image.shape[1] // 2), preserve_range=True)
-    
-    width = image.shape[0] // BLOCK_SIZE * BLOCK_SIZE
-    height = image.shape[1] // BLOCK_SIZE * BLOCK_SIZE
-    image = image.transpose((2, 0, 1)).astype(np.float32) / 255
-    image = image[:, :width, :height]
+    if image.shape[0] > image.shape[1]:
+        image = np.rot90(image)
+
+    while image.shape[0] > HEIGHT or image.shape[1] > WIDTH:
+        image = transform.resize(image, (image.shape[0] // 2, image.shape[1] // 2), preserve_range=True)    
 
     if is_bw:
-        image = image[0, :, :]
+        result = np.zeros((HEIGHT, WIDTH), dtype=np.float32)
+        result[:image.shape[0], :image.shape[1]] = image[:, :, 0].astype(np.float32) / 255
+    else:
+        image = image.transpose((2, 0, 1)).astype(np.float32) / 255
+        result = np.ones((3, HEIGHT, WIDTH), dtype=np.float32)
+        result[:, :image.shape[1], :image.shape[2]] = image
 
-    return torch.from_numpy(image)
+    return torch.from_numpy(result)
 
 class MaskDataset(Dataset):
     def __init__(self):
