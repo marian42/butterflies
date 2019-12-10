@@ -26,7 +26,7 @@ from mask_loader import MaskDataset
 dataset = MaskDataset()
 data_loader = DataLoader(dataset, batch_size=8, shuffle=True, num_workers=4)
 
-optimizer = optim.Adam(classifier.parameters(), lr=0.0005)
+optimizer = optim.Adam(classifier.parameters(), lr=0.0002)
 criterion = nn.BCELoss()
 
 def save_example(epoch, hash, image, mask):
@@ -57,7 +57,7 @@ def train():
             error = loss.item()
             loss_history.append(error)
 
-            if epoch % 5 == 0 and epoch != 0:
+            if epoch % 10 == 0 and epoch != 0:
                 for i in range(image.shape[0]):
                     save_example(epoch, hash[i], image[i, :, :], output[i, :, :])
         print(epoch, np.mean(loss_history))
