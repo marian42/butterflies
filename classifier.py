@@ -105,11 +105,11 @@ class Classifier(nn.Module):
 
         coords = (mask > 0.5).nonzero()
     
-        if coords.size != 0:
-            top_left, _ = torch.min(coords, dim=0)
-            bottom_right, _ = torch.max(coords, dim=0)
-        else:
+        if coords.nelement() == 0:
             return None
+
+        top_left, _ = torch.min(coords, dim=0)
+        bottom_right, _ = torch.max(coords, dim=0)
         
         mask = mask[:, top_left[1]:bottom_right[1], top_left[2]:bottom_right[2]]
         image = image[:, top_left[1]:bottom_right[1], top_left[2]:bottom_right[2]]
