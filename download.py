@@ -1,7 +1,4 @@
-
 import csv
-
-
 from tqdm import tqdm
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError

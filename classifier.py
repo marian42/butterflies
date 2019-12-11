@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 
-
 BREADTH = 8
 
 class BlockDown(nn.Module):
@@ -92,3 +91,39 @@ class Classifier(nn.Module):
 
     def forward(self, x):
         return self.layers((x, []))[0]
+
+    @torch.no_grad()
+    def apply(self, image, clipping_range=0.2, background=(1, 1, 1), create_alpha=False, crop=True, margin=0.05):
+        mask = self(image.unsqueeze(0)).squeeze(0)
+        background = torch.tensor(background, device=image.device, dtype=torch.float32).reshape(3, 1, 1)
+        
+        if clipping_range is not None:
+            mask = (mask - 0.5) * 2
+            mask.clamp_(-clipping_range, clipping_range)
+            mask /= clipping_range
+            mask = mask / 2 + 0.5
+
+        coords = (mask > 0.5).nonzero()
+    
+        if coords.size != 0:
+            top_left, _ = torch.min(coords, dim=0)
+            bottom_right, _ = torch.max(coords, dim=0)
+        else:
+            return None
+        
+        mask = mask[:, top_left[1]:bottom_right[1], top_left[2]:bottom_right[2]]
+        image = image[:, top_left[1]:bottom_right[1], top_left[2]:bottom_right[2]]
+
+        image = image * mask + (1.0 - mask) * background
+
+        new_size = int(max(image.shape[1], image.shape[2]) * (1 + margin))
+        
+        result = torch.zeros((4 if create_alpha else 3, new_size, new_size), device=image.device)
+        y, x = (new_size - image.shape[1]) // 2, (new_size - image.shape[2]) // 2
+        result[:3, :, :] = background
+        result[:3, y:y+image.shape[1], x:x+image.shape[2]] = image
+
+        if create_alpha:
+            result[3, y:y+image.shape[1], x:x+image.shape[2]] = mask
+
+        return result
