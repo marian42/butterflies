@@ -21,7 +21,7 @@ class PrintShape(nn.Module):
 
 LATENT_CODE_SIZE = 128
 
-amcm = 8
+amcm = 16
 
 class Autoencoder(nn.Module):
     def __init__(self):

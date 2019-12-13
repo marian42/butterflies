@@ -34,10 +34,10 @@ autoencoder = Autoencoder()
 if "continue" in sys.argv:    
     autoencoder.load_state_dict(torch.load(AUTOENCODER_FILENAME))
 
-optimizer = optim.Adam(autoencoder.parameters(), lr=0.0005)
+optimizer = optim.Adam(autoencoder.parameters(), lr=0.001)
 criterion = nn.functional.mse_loss
 
-error_history = deque(maxlen = BATCH_SIZE)
+error_history = deque(maxlen = len(dataset) // BATCH_SIZE)
 
 def kld_loss(mean, log_variance):
     return -0.5 * torch.sum(1 + log_variance - mean.pow(2) - log_variance.exp()) / mean.nelement()
@@ -61,15 +61,11 @@ def train():
             
             loss.backward()
             optimizer.step()
-
-            if (batch_index + 1) % 100 == 0:
-                print("epoch " + str(epoch) + ", batch " + str(batch_index) \
-                    + ', reconstruction loss: {0:.4f}'.format(reconstruction_loss.item()) \
-                    + ' (average: {0:.4f}), '.format(sum(error_history) / len(error_history)) \
-                    + 'KLD loss: {0:.4f}'.format(kld))                
-                torch.save(autoencoder.state_dict(), AUTOENCODER_FILENAME)
             batch_index += 1
-        
+
+        print("Epoch " + str(epoch) \
+                + ': reconstruction loss: {0:.4f}'.format(sum(error_history) / len(error_history)) \
+                + ', KLD loss: {0:.4f}'.format(kld))
         torch.save(autoencoder.state_dict(), AUTOENCODER_FILENAME)
 
 train()
