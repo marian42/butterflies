@@ -27,7 +27,11 @@ for file_name in tqdm(file_names):
     if os.path.exists(result_file_name):
         continue
 
-    image = load_image(file_name).to(device)
+    try:
+        image = load_image(file_name).to(device)
+    except ValueError:
+        print("Could not open {:s}.".format(file_name))
+        continue
     image = classifier.apply(image)
     if image is None:
         print("Found nothing in {:s}.".format(hash))
