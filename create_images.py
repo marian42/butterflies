@@ -15,6 +15,7 @@ from classifier import Classifier
 
 OUTPUT_RESOLUTION = None
 MARGIN = 0.1
+ALPHA = False
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 CLASSIFIER_FILENAME = 'trained_models/classifier.to'
@@ -39,7 +40,8 @@ class ImageDataset(Dataset):
         image_file_name = 'data/raw/{:s}.jpg'.format(hash)
         result_file_name = 'data/images' \
             + ('' if OUTPUT_RESOLUTION is None else '_{:d}'.format(OUTPUT_RESOLUTION)) \
-            + '/{:s}.jpg'.format(hash)
+            + ('' if not ALPHA else '_alpha') \
+            + '/{:s}.{:s}'.format(hash, 'png' if ALPHA else 'jpg')
 
         if os.path.exists(result_file_name):
             return SKIP_ITEM
@@ -62,7 +64,7 @@ for item in tqdm(data_loader):
     image, result_file_name = item
     image = image.to(device)
 
-    image = classifier.apply(image, margin=MARGIN)
+    image = classifier.apply(image, margin=MARGIN, create_alpha=ALPHA)
     
     if image is None:
         print("Found nothing.")
