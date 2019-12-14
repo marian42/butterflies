@@ -14,6 +14,6 @@ def get_tsne():
 
 @app.route('/image/<hash>')
 def get_image(hash):
-    return send_file('data/images_128/{:s}.jpg'.format(hash))
+    return send_file('data/images_32/{:s}.jpg'.format(hash))
 
 app.run()

@@ -32,6 +32,15 @@
                 height: 100%;
                 background-color: #FFFFFF;
             }
+
+            .leaflet-marker-icon {
+                animation: fadein 0.4s;
+            }
+
+            @keyframes fadein {
+                from { opacity: 0; }
+                to   { opacity: 1; }
+            }
         </style>
         <script>
             const ICON_SIZE = 32;
@@ -40,6 +49,7 @@
             var data = null;
             var visibleDepth = 0;
             var visibleQuads = {};
+            var quadLoadingQueue = [];
 
             function setQuadVisibility(depth, x, y, value) {
                 if (!(depth in visibleQuads)) {
@@ -87,9 +97,47 @@
                 }
             }
 
-            function updateLayers() {
+            var loadingQueueActive = false;
+
+            function updateQuadLoadingQueue() {
+                if (quadLoadingQueue.length == 0) {
+                    loadingQueueActive = false;
+                    return;
+                }
+
+                loadingQueueActive = true;
+                while (quadLoadingQueue.length > 0) {
+                    var coords = quadLoadingQueue[0];
+                    quadLoadingQueue.shift();
+                    var depth = coords[0];
+                    var x = coords[1];
+                    var y = coords[2];
+                    if (getQuadVisibility(depth, x, y)) {
+                        continue;
+                    }
+
+                    var quad = data[depth][x][y];
+                    for (let item of quad.items) {
+                        createMarker(item);
+                    }
+
+                    setQuadVisibility(depth, x, y, true);
+                    break;
+                }
+                setTimeout(updateQuadLoadingQueue, 1);
+            }
+
+            function updateLayers(event) {
+                var targetZoomLevel = event !== undefined && event.zoom !== undefined ? event.zoom : map.getZoom();
+                if (targetZoomLevel === undefined) {
+                    return;
+                }
+                if (targetZoomLevel > map.getZoom() && event.type == 'zoomanim') {
+                    return;
+                }
+
                 var bounds = map.getBounds();
-                currentDepth = Math.max(0, map.getZoom() - ZOOM_OFFSET);
+                currentDepth = Math.max(0, targetZoomLevel - ZOOM_OFFSET);
 
                 for (var depth = 0; depth <= currentDepth; depth++) {
                     if (!(depth in data)) {
@@ -112,12 +160,11 @@
                             if (!(y in data[depth][x])) {
                                 continue;
                             }
-                            var quad = data[depth][x][y];
                             if (!getQuadVisibility(depth, x, y)) {
-                                for (let item of quad.items) {
-                                    createMarker(item);
+                                quadLoadingQueue.push([depth, x, y]);
+                                if (!loadingQueueActive) {
+                                    updateQuadLoadingQueue();
                                 }
-                                setQuadVisibility(depth, x, y, true);
                             }
                         }
                     }
@@ -163,6 +210,7 @@
                 crs: L.CRS.Simple
             });
             
+            map.on('zoomanim', updateLayers);
             map.on('zoomend', updateLayers);
             map.on('moveend', updateLayers);
 
