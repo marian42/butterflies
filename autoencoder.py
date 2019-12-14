@@ -30,32 +30,52 @@ class Autoencoder(nn.Module):
         self.encoder = nn.Sequential(
             nn.Conv2d(in_channels = 3, out_channels = 1 * amcm, kernel_size = 4, stride = 2, padding = 1), # 128 -> 64
             nn.BatchNorm2d(1 * amcm),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True),
+            nn.ReLU(inplace=True),
+
+            nn.Conv2d(in_channels = 1 * amcm, out_channels = 1 * amcm, kernel_size = 3, padding=1),
+            nn.BatchNorm2d(1 * amcm),
+            nn.ReLU(inplace=True),
 
             nn.Conv2d(in_channels = 1 * amcm, out_channels = 2 * amcm, kernel_size = 4, stride = 2, padding = 1), # 64 -> 32
             nn.BatchNorm2d(2 * amcm),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True),
+            nn.ReLU(inplace=True),
+
+            nn.Conv2d(in_channels = 2 * amcm, out_channels = 2 * amcm, kernel_size = 3, padding=1),
+            nn.BatchNorm2d(2 * amcm),
+            nn.ReLU(inplace=True),
 
             nn.Conv2d(in_channels = 2 * amcm, out_channels = 4 * amcm, kernel_size = 4, stride = 2, padding = 1), # 32 -> 16
             nn.BatchNorm2d(4 * amcm),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True),
+            nn.ReLU(inplace=True),
+
+            nn.Conv2d(in_channels = 4 * amcm, out_channels = 4 * amcm, kernel_size = 3, padding=1),
+            nn.BatchNorm2d(4 * amcm),
+            nn.ReLU(inplace=True),
 
             nn.Conv2d(in_channels = 4 * amcm, out_channels = 8 * amcm, kernel_size = 4, stride = 2, padding = 1), # 16 -> 8
             nn.BatchNorm2d(8 * amcm),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True),
+            nn.ReLU(inplace=True),
+
+            nn.Conv2d(in_channels = 8 * amcm, out_channels = 8 * amcm, kernel_size = 3, padding=1),
+            nn.BatchNorm2d(8 * amcm),
+            nn.ReLU(inplace=True),
 
             nn.Conv2d(in_channels = 8 * amcm, out_channels = 16 * amcm, kernel_size = 4, stride = 2, padding = 1), # 8 -> 4
             nn.BatchNorm2d(16 * amcm),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True),
+            nn.ReLU(inplace=True),
+
+            nn.Conv2d(in_channels = 16 * amcm, out_channels = 16 * amcm, kernel_size = 3, padding=1),
+            nn.BatchNorm2d(16 * amcm),
+            nn.ReLU(inplace=True),
 
             nn.Conv2d(in_channels = 16 * amcm, out_channels = LATENT_CODE_SIZE, kernel_size = 4, stride = 1), # 4 -> 1
             nn.BatchNorm2d(LATENT_CODE_SIZE),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True),
+            nn.ReLU(inplace=True),
 
             Lambda(lambda x: x.reshape(x.shape[0], -1)),
 
             nn.BatchNorm1d(LATENT_CODE_SIZE),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True)
+            nn.ReLU(inplace=True),
         )
         
         self.encode_mean = nn.Linear(in_features=LATENT_CODE_SIZE, out_features=LATENT_CODE_SIZE)
@@ -64,28 +84,48 @@ class Autoencoder(nn.Module):
         self.decoder = nn.Sequential(
             nn.Linear(in_features = LATENT_CODE_SIZE, out_features=LATENT_CODE_SIZE * 2),
             nn.BatchNorm1d(LATENT_CODE_SIZE * 2),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True),
+            nn.ReLU(inplace=True),
 
             Lambda(lambda x: x.reshape(-1, LATENT_CODE_SIZE * 2, 1, 1)),
             nn.ConvTranspose2d(in_channels = LATENT_CODE_SIZE * 2, out_channels = 16 * amcm, kernel_size = 4, stride = 1), # 1 -> 4
             nn.BatchNorm2d(16 * amcm),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True),
+            nn.ReLU(inplace=True),
+
+            nn.Conv2d(in_channels = 16 * amcm, out_channels = 16 * amcm, kernel_size = 3, padding=1),
+            nn.BatchNorm2d(16 * amcm),
+            nn.ReLU(inplace=True),
 
             nn.ConvTranspose2d(in_channels = 16 * amcm, out_channels = 8 * amcm, kernel_size = 4, stride = 2, padding = 1), # 4 -> 8
             nn.BatchNorm2d(8 * amcm),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True),
+            nn.ReLU(inplace=True),
+
+            nn.Conv2d(in_channels = 8 * amcm, out_channels = 8 * amcm, kernel_size = 3, padding=1),
+            nn.BatchNorm2d(8 * amcm),
+            nn.ReLU(inplace=True),
 
             nn.ConvTranspose2d(in_channels = 8 * amcm, out_channels = 4 * amcm, kernel_size = 4, stride = 2, padding = 1), # 8 -> 16
             nn.BatchNorm2d(4 * amcm),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True),
+            nn.ReLU(inplace=True),
+
+            nn.Conv2d(in_channels = 4 * amcm, out_channels = 4 * amcm, kernel_size = 3, padding=1),
+            nn.BatchNorm2d(4 * amcm),
+            nn.ReLU(inplace=True),
 
             nn.ConvTranspose2d(in_channels = 4 * amcm, out_channels = 2 * amcm, kernel_size = 4, stride = 2, padding = 1), # 16 -> 32
             nn.BatchNorm2d(2 * amcm),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True),
+            nn.ReLU(inplace=True),
+
+            nn.Conv2d(in_channels = 2 * amcm, out_channels = 2 * amcm, kernel_size = 3, padding=1),
+            nn.BatchNorm2d(2 * amcm),
+            nn.ReLU(inplace=True),
             
             nn.ConvTranspose2d(in_channels = 2 * amcm, out_channels = 1 * amcm, kernel_size = 4, stride = 2, padding = 1), # 32 -> 64
             nn.BatchNorm2d(1 * amcm),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True),
+            nn.ReLU(inplace=True),
+
+            nn.Conv2d(in_channels = 1 * amcm, out_channels = 1 * amcm, kernel_size = 3, padding=1),
+            nn.BatchNorm2d(1 * amcm),
+            nn.ReLU(inplace=True),
 
             nn.ConvTranspose2d(in_channels = 1 * amcm, out_channels = 3, kernel_size = 4, stride = 2, padding = 1), # 64 -> 128
         )

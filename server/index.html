@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta name="description" content="" />
+        <meta charset="utf-8">
+        <title>Butterflies</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="author" content="">
+
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.5.1/dist/leaflet.css"
+            integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ=="
+            crossorigin=""/>
+        <script src="https://unpkg.com/leaflet@1.5.1/dist/leaflet.js"
+            integrity="sha512-GffPMF3RvMeYyc1LWMHtK8EbPv0iNZ8/oTtHPx9/cc2ILxQ+u905qIwdpULaqDkyBKgOaB57QTMg7ztg8Jm2Og=="
+            crossorigin="">
+        </script>
+    </head>
+
+    <body>
+        <div id="map"></div>
+        
+        <style>
+            html, body {
+                margin: 0;
+                padding: 0;
+                width: 100%;
+                height: 100%;
+                font-family: sans-serif;
+            }
+            #map {
+                width: 100%;
+                height: 100%;
+                background-color: #FFFFFF;
+            }
+        </style>
+        <script>
+            const ICON_SIZE = 48;
+            
+            function loadJson(json) {
+                for (var i = 0; i < 200; i++) {
+                    item = json[i];
+                    latLng = [item.x, item.y];
+                    var layer = L.marker(latLng, {
+                        icon: L.icon({
+                            iconUrl: 'image/' + item.hash,
+                            iconSize: [ICON_SIZE, ICON_SIZE],
+                            iconAnchor: [ICON_SIZE / 2, ICON_SIZE / 2],
+                            popupAnchor: [0, -ICON_SIZE  / 2]
+                        })
+                    });
+                    layer.bindPopup('<img src="image/' + item.hash + '" width="128"><br><a href="https://www.nhm.ac.uk/services/media-store/asset/' + item.hash + '/contents/preview">source image</a>');
+                    layer.addTo(map);
+                }
+            }
+            
+            var map = L.map('map', {
+                zoomControl: true,
+                center: [0, 0],
+                zoom: 8,
+                minZoom: 8,
+                crs: L.CRS.Simple
+            });
+            
+            //map.on('zoomend', );
+            //map.on('zoomanim', );
+            
+            var request = new XMLHttpRequest();
+            request.open('GET', '/tsne.json');
+            request.onload = function() {
+                if (request.status === 200) {
+                    var json = JSON.parse(request.responseText);
+                    loadJson(json);
+                }
+            };
+            request.send();
+        </script>
+    </body>
+</html>
