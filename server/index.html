@@ -112,7 +112,7 @@
                     var depth = coords[0];
                     var x = coords[1];
                     var y = coords[2];
-                    if (getQuadVisibility(depth, x, y)) {
+                    if (!getQuadVisibility(depth, x, y)) {
                         continue;
                     }
 
@@ -120,8 +120,7 @@
                     for (let item of quad.items) {
                         createMarker(item);
                     }
-
-                    setQuadVisibility(depth, x, y, true);
+                    
                     break;
                 }
                 setTimeout(updateQuadLoadingQueue, 1);
@@ -161,6 +160,7 @@
                                 continue;
                             }
                             if (!getQuadVisibility(depth, x, y)) {
+                                setQuadVisibility(depth, x, y, true);
                                 quadLoadingQueue.push([depth, x, y]);
                                 if (!loadingQueueActive) {
                                     updateQuadLoadingQueue();
@@ -206,8 +206,9 @@
                 zoomControl: true,
                 center: [0, 0],
                 zoom: 9,
-                minZoom: 8,
-                crs: L.CRS.Simple
+                minZoom: 0,
+                crs: L.CRS.Simple,
+                maxBounds: [[-1, -1], [1, 1]]
             });
             
             map.on('zoomanim', updateLayers);
