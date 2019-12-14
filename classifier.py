@@ -94,6 +94,9 @@ class Classifier(nn.Module):
 
     @torch.no_grad()
     def apply(self, image, clipping_range=0.2, background=(1, 1, 1), create_alpha=False, crop=True, margin=0.05):
+        if len(image.shape) > 3:
+            image = image.squeeze(0)
+        
         mask = self(image.unsqueeze(0)).squeeze(0)
         background = torch.tensor(background, device=image.device, dtype=torch.float32).reshape(3, 1, 1)
         
