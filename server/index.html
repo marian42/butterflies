@@ -34,42 +34,145 @@
             }
         </style>
         <script>
-            const ICON_SIZE = 48;
-            
-            function loadJson(json) {
-                for (var i = 0; i < 200; i++) {
-                    item = json[i];
-                    latLng = [item.x, item.y];
-                    var layer = L.marker(latLng, {
-                        icon: L.icon({
-                            iconUrl: 'image/' + item.hash,
-                            iconSize: [ICON_SIZE, ICON_SIZE],
-                            iconAnchor: [ICON_SIZE / 2, ICON_SIZE / 2],
-                            popupAnchor: [0, -ICON_SIZE  / 2]
-                        })
-                    });
-                    layer.bindPopup('<img src="image/' + item.hash + '" width="128"><br><a href="https://www.nhm.ac.uk/services/media-store/asset/' + item.hash + '/contents/preview">source image</a>');
-                    layer.addTo(map);
+            const ICON_SIZE = 32;
+            const ZOOM_OFFSET = 7;
+
+            var data = null;
+            var visibleDepth = 0;
+            var visibleQuads = {};
+
+            function setQuadVisibility(depth, x, y, value) {
+                if (!(depth in visibleQuads)) {
+                    visibleQuads[depth] = {};
                 }
+                if (!(x in visibleQuads[depth])) {
+                    visibleQuads[depth][x] = {};
+                }
+                if (value) {
+                    visibleQuads[depth][x][y] = true;
+                } else {
+                    delete visibleQuads[depth][x][y];
+                }
+            }
+
+            function getQuadVisibility(depth, x, y) {
+                if (!(depth in visibleQuads)) {
+                    return false;
+                }
+                if (!(x in visibleQuads[depth])) {
+                    return false;
+                }
+                return y in visibleQuads[depth][x]
+            }
+
+            function createMarker(item) {
+                latLng = [item.y, item.x];
+                var layer = L.marker(latLng, {
+                    icon: L.icon({
+                        iconUrl: 'image/' + item.hash,
+                        iconSize: [ICON_SIZE, ICON_SIZE],
+                        iconAnchor: [ICON_SIZE / 2, ICON_SIZE / 2],
+                        popupAnchor: [0, -ICON_SIZE  / 2]
+                    })
+                });
+                layer.bindPopup('<img src="image/' + item.hash + '" width="128"><br><a href="https://www.nhm.ac.uk/services/media-store/asset/' + item.hash + '/contents/preview">source image</a>');
+                layer.addTo(map);
+                item.layer = layer;
+            }
+
+            function hideQuad(depth, x, y) {
+                quad = data[depth][x][y];
+                for (item of quad.items) {
+                    map.removeLayer(item.layer);
+                }
+            }
+
+            function updateLayers() {
+                var bounds = map.getBounds();
+                currentDepth = Math.max(0, map.getZoom() - ZOOM_OFFSET);
+
+                for (var depth = 0; depth <= currentDepth; depth++) {
+                    if (!(depth in data)) {
+                        break;
+                    }
+                    var xRange = [
+                        Math.max(0, Math.floor((bounds.getWest() + 1) / 2 * Math.pow(2, depth))),
+                        Math.min(Math.ceil((bounds.getEast() + 1) / 2 * Math.pow(2, depth)), Math.pow(2, depth) - 1)
+                    ];
+                    var yRange = [
+                        Math.max(0, Math.floor((bounds.getSouth() + 1) / 2 * Math.pow(2, depth))),
+                        Math.min(Math.ceil((bounds.getNorth() + 1) / 2 * Math.pow(2, depth)), Math.pow(2, depth) - 1)
+                    ];
+
+                    for (var x = xRange[0]; x <= xRange[1]; x++) {
+                        if (!(x in data[depth])) {
+                            continue;
+                        }
+                        for (var y = yRange[0]; y <= yRange[1]; y++) {
+                            if (!(y in data[depth][x])) {
+                                continue;
+                            }
+                            var quad = data[depth][x][y];
+                            if (!getQuadVisibility(depth, x, y)) {
+                                for (let item of quad.items) {
+                                    createMarker(item);
+                                }
+                                setQuadVisibility(depth, x, y, true);
+                            }
+                        }
+                    }
+
+                    var quadsToBeRemoved = [];
+                    if (depth in visibleQuads) {
+                        for (var x in visibleQuads[depth]) {
+                            for (var y in visibleQuads[depth][x]) {
+                                if (x < xRange[0] || x > xRange[1] || y < yRange[0] || y > yRange[1]) {
+                                    quadsToBeRemoved.push([x, y]);
+                                    hideQuad(depth, x, y);
+                                }
+                            }
+                        }
+                    }
+                    for (let item of quadsToBeRemoved) {
+                        setQuadVisibility(depth, item[0], item[1], false);
+                    }
+                }
+
+                if (currentDepth < visibleDepth) {
+                    for (var depth = visibleDepth; depth > currentDepth; depth--) {
+                        if (!(depth in visibleQuads)) {
+                            continue;
+                        }
+                        for (var x in visibleQuads[depth]) {
+                            for (var y in visibleQuads[depth][x]) {
+                                quadsToBeRemoved.push([x, y]);
+                                hideQuad(depth, x, y);
+                            }
+                        }
+                        visibleQuads[depth] = {};
+                    }
+                }
+                visibleDepth = currentDepth;
             }
             
             var map = L.map('map', {
                 zoomControl: true,
                 center: [0, 0],
-                zoom: 8,
+                zoom: 9,
                 minZoom: 8,
                 crs: L.CRS.Simple
             });
             
-            //map.on('zoomend', );
-            //map.on('zoomanim', );
+            map.on('zoomend', updateLayers);
+            map.on('moveend', updateLayers);
+
             
             var request = new XMLHttpRequest();
             request.open('GET', '/tsne.json');
             request.onload = function() {
                 if (request.status === 200) {
-                    var json = JSON.parse(request.responseText);
-                    loadJson(json);
+                    data = JSON.parse(request.responseText);
+                    updateLayers();
                 }
             };
             request.send();
