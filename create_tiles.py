@@ -29,9 +29,10 @@ for x in tqdm(range(-2**TILE_DEPTH, 2**TILE_DEPTH), desc="Rendering"):
         tile_file_name = TILE_FILE_FORMAT.format(TILE_DEPTH + DEPTH_OFFSET, x, y)
         if os.path.exists(tile_file_name):
             continue
-
-        x_range = ((x - 0.5) / 2**TILE_DEPTH, (x + 1.5) / 2**TILE_DEPTH)
-        y_range = ((y - 0.5) / 2**TILE_DEPTH, (y + 1.5) / 2**TILE_DEPTH)
+        
+        margin = IMAGE_SIZE / 2 / TILE_SIZE
+        x_range = ((x - margin) / 2**TILE_DEPTH, (x + 1 + margin) / 2**TILE_DEPTH)
+        y_range = ((y - margin) / 2**TILE_DEPTH, (y + 1 + margin) / 2**TILE_DEPTH)
 
         mask = (codes[:, 0] > x_range[0]) \
             & (codes[:, 0] < x_range[1]) \
@@ -47,10 +48,10 @@ for x in tqdm(range(-2**TILE_DEPTH, 2**TILE_DEPTH), desc="Rendering"):
         
         for i in range(indices.shape[0]):
             index = indices[i]
-            image_file_name = 'data/images_128/{:s}.jpg'.format(dataset.hashes[index])
+            image_file_name = 'data/images_alpha/{:s}.png'.format(dataset.hashes[index])
             image = Image.open(image_file_name)
-            image = image.resize((IMAGE_SIZE, IMAGE_SIZE))
-            tile.paste(image, (int(positions[i, 0] - IMAGE_SIZE // 2), int(positions[i, 1] - IMAGE_SIZE // 2)))
+            image = image.resize((IMAGE_SIZE, IMAGE_SIZE), resample=Image.BICUBIC)
+            tile.paste(image, (int(positions[i, 0] - IMAGE_SIZE // 2), int(positions[i, 1] - IMAGE_SIZE // 2)), mask=image)
         
         tile_directory = os.path.dirname(tile_file_name)
         if not os.path.exists(tile_directory):
@@ -70,7 +71,7 @@ for depth in range(TILE_DEPTH - 1, -1, -1):
                 for b in range(2):
                     old_tile_file_name = TILE_FILE_FORMAT.format(depth + 1 + DEPTH_OFFSET, x * 2 + a, y * 2 + b)
                     image = Image.open(old_tile_file_name)
-                    image = image.resize((TILE_SIZE // 2, TILE_SIZE // 2))
+                    image = image.resize((TILE_SIZE // 2, TILE_SIZE // 2), resample=Image.BICUBIC)
                     tile.paste(image, (a * TILE_SIZE // 2, b * TILE_SIZE // 2))
             
             tile_directory = os.path.dirname(tile_file_name)
