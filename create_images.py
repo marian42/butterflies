@@ -66,11 +66,11 @@ for item in tqdm(data_loader):
 
     image = classifier.apply(image, margin=MARGIN, create_alpha=ALPHA)
     
-    if image is None:
+    if image is None or len(image.shape) != 3 or image.shape[1] < 10 or image.shape[2] < 10:
         print("Found nothing.")
         continue
     
     if OUTPUT_RESOLUTION is not None:
         image = (F.adaptive_avg_pool2d(image, (OUTPUT_RESOLUTION, OUTPUT_RESOLUTION))).data
-        
+    
     utils.save_image(image, result_file_name[0])
