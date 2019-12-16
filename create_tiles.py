@@ -4,7 +4,7 @@ import json
 from sklearn.cluster import KMeans
 from itertools import count
 from tqdm import tqdm
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFilter, ImageEnhance
 import os
 from multiprocessing import Pool
 import traceback
@@ -17,6 +17,8 @@ DEPTH_OFFSET = 8
 TILE_SIZE = 256
 IMAGE_SIZE = 128
 TILE_DEPTH = 7
+SHADOW_RADIUS = 12
+SHADOW_VALUE = 0.8
 
 min_value = np.min(codes, axis=0)
 max_value = np.max(codes, axis=0)
@@ -47,8 +49,8 @@ def create_tile(depth, x, y):
                 image = image.resize((TILE_SIZE // 2, TILE_SIZE // 2), resample=Image.BICUBIC)
                 tile.paste(image, (a * TILE_SIZE // 2, b * TILE_SIZE // 2))
 
-    if depth > 0:
-        margin = IMAGE_SIZE / 2 / TILE_SIZE
+    if depth > 1:
+        margin = (IMAGE_SIZE / 2 + SHADOW_RADIUS) / TILE_SIZE
         x_range = ((x - margin) / 2**depth, (x + 1 + margin) / 2**depth)
         y_range = ((y - margin) / 2**depth, (y + 1 + margin) / 2**depth)
 
@@ -67,6 +69,14 @@ def create_tile(depth, x, y):
             image_file_name = 'data/images_alpha/{:s}.png'.format(hashes[index])
             image = Image.open(image_file_name)
             image = image.resize((IMAGE_SIZE, IMAGE_SIZE), resample=Image.BICUBIC)
+
+            shadow_mask = Image.new("L", (IMAGE_SIZE + 2 * SHADOW_RADIUS, IMAGE_SIZE + 2 * SHADOW_RADIUS), 0)
+            shadow_mask.paste(image.split()[-1], (SHADOW_RADIUS, SHADOW_RADIUS))
+            shadow_mask = shadow_mask.filter(ImageFilter.GaussianBlur(radius=SHADOW_RADIUS // 2))
+            enhancer = ImageEnhance.Brightness(shadow_mask)
+            shadow_mask = enhancer.enhance(SHADOW_VALUE)
+
+            tile.paste((0, 0, 0), (int(positions[i, 0] - IMAGE_SIZE // 2 - SHADOW_RADIUS), int(positions[i, 1] - IMAGE_SIZE // 2 - SHADOW_RADIUS)), mask=shadow_mask)
             tile.paste(image, (int(positions[i, 0] - IMAGE_SIZE // 2), int(positions[i, 1] - IMAGE_SIZE // 2)), mask=image)
     
     tile_directory = os.path.dirname(tile_file_name)
@@ -79,7 +89,6 @@ def try_create_tile(*args):
         create_tile(*args)
     except:
         traceback.print_exc()
-        exit()
 
 def kmeans(points, n):
     if points.shape[0] <= n:
