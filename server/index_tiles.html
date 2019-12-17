@@ -45,18 +45,18 @@
         <script>
             var map = L.map('map', {
                 zoomControl: true,
-                center: [0, 0],
-                zoom: 9,
-                minZoom: 8,
+                minZoom: 5,
                 maxZoom: 16,
                 crs: L.CRS.Simple
             });
 
             L.tileLayer('tile/{z}/{x}/{y}.png', {
-                minZoom: 8,
+                minZoom: 5,
                 maxZoom: 16,
                 bounds: [[-1, -1], [1, 1]]
             }).addTo(map);
+
+            map.fitBounds([[-1, -1], [1, 1]]);
         </script>
     </body>
 </html>

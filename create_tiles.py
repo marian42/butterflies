@@ -8,6 +8,7 @@ from PIL import Image, ImageDraw, ImageFilter, ImageEnhance
 import os
 from multiprocessing import Pool
 import traceback
+import math
 
 codes = np.load('data/latent_codes_embedded_moved.npy')
 TILE_FILE_FORMAT = 'data/tiles/{:d}/{:d}/{:d}.jpg'
@@ -39,9 +40,6 @@ def create_tile(depth, x, y):
     tile = Image.new("RGB", (TILE_SIZE, TILE_SIZE), (255, 255, 255))
     is_empty = True
 
-    codes_current = codes_by_depth[depth]
-    hashes = hashes_by_depth[depth]
-
     if depth < TILE_DEPTH:
         for a in range(2):
             for b in range(2):
@@ -53,36 +51,40 @@ def create_tile(depth, x, y):
                 tile.paste(image, (a * TILE_SIZE // 2, b * TILE_SIZE // 2))
                 is_empty = False
 
-    margin = (IMAGE_SIZE / 2 + SHADOW_RADIUS) / TILE_SIZE
-    x_range = ((x - margin) / 2**depth, (x + 1 + margin) / 2**depth)
-    y_range = ((y - margin) / 2**depth, (y + 1 + margin) / 2**depth)
+    if depth > 1:
+        margin = (IMAGE_SIZE / 2 + SHADOW_RADIUS) / TILE_SIZE
+        x_range = ((x - margin) / 2**depth, (x + 1 + margin) / 2**depth)
+        y_range = ((y - margin) / 2**depth, (y + 1 + margin) / 2**depth)
 
-    mask = (codes_current[:, 0] > x_range[0]) \
-        & (codes_current[:, 0] < x_range[1]) \
-        & (codes_current[:, 1] > y_range[0]) \
-        & (codes_current[:, 1] < y_range[1])
-    indices = mask.nonzero()[0]
+        codes_current = codes_by_depth[depth]
+        hashes = hashes_by_depth[depth]
 
-    if indices.shape[0] > 0 and depth > 1:
-        is_empty = False
-        positions = codes_current[indices, :]
-        positions *= 2**depth * TILE_SIZE
-        positions -= np.array((x * TILE_SIZE, y * TILE_SIZE))[np.newaxis, :]
+        mask = (codes_current[:, 0] > x_range[0]) \
+            & (codes_current[:, 0] < x_range[1]) \
+            & (codes_current[:, 1] > y_range[0]) \
+            & (codes_current[:, 1] < y_range[1])
+        indices = mask.nonzero()[0]
 
-        for i in range(indices.shape[0]):
-            index = indices[i]
-            image_file_name = 'data/images_alpha/{:s}.png'.format(hashes[index])
-            image = Image.open(image_file_name)
-            image = image.resize((IMAGE_SIZE, IMAGE_SIZE), resample=Image.BICUBIC)
+        if indices.shape[0] > 0:
+            is_empty = False
+            positions = codes_current[indices, :]
+            positions *= 2**depth * TILE_SIZE
+            positions -= np.array((x * TILE_SIZE, y * TILE_SIZE))[np.newaxis, :]
 
-            shadow_mask = Image.new("L", (IMAGE_SIZE + 2 * SHADOW_RADIUS, IMAGE_SIZE + 2 * SHADOW_RADIUS), 0)
-            shadow_mask.paste(image.split()[-1], (SHADOW_RADIUS, SHADOW_RADIUS))
-            shadow_mask = shadow_mask.filter(ImageFilter.GaussianBlur(radius=SHADOW_RADIUS // 2))
-            enhancer = ImageEnhance.Brightness(shadow_mask)
-            shadow_mask = enhancer.enhance(SHADOW_VALUE)
+            for i in range(indices.shape[0]):
+                index = indices[i]
+                image_file_name = 'data/images_alpha/{:s}.png'.format(hashes[index])
+                image = Image.open(image_file_name)
+                image = image.resize((IMAGE_SIZE, IMAGE_SIZE), resample=Image.BICUBIC)
 
-            tile.paste((0, 0, 0), (int(positions[i, 0] - IMAGE_SIZE // 2 - SHADOW_RADIUS), int(positions[i, 1] - IMAGE_SIZE // 2 - SHADOW_RADIUS)), mask=shadow_mask)
-            tile.paste(image, (int(positions[i, 0] - IMAGE_SIZE // 2), int(positions[i, 1] - IMAGE_SIZE // 2)), mask=image)
+                shadow_mask = Image.new("L", (IMAGE_SIZE + 2 * SHADOW_RADIUS, IMAGE_SIZE + 2 * SHADOW_RADIUS), 0)
+                shadow_mask.paste(image.split()[-1], (SHADOW_RADIUS, SHADOW_RADIUS))
+                shadow_mask = shadow_mask.filter(ImageFilter.GaussianBlur(radius=SHADOW_RADIUS // 2))
+                enhancer = ImageEnhance.Brightness(shadow_mask)
+                shadow_mask = enhancer.enhance(SHADOW_VALUE)
+
+                tile.paste((0, 0, 0), (int(positions[i, 0] - IMAGE_SIZE // 2 - SHADOW_RADIUS), int(positions[i, 1] - IMAGE_SIZE // 2 - SHADOW_RADIUS)), mask=shadow_mask)
+                tile.paste(image, (int(positions[i, 0] - IMAGE_SIZE // 2), int(positions[i, 1] - IMAGE_SIZE // 2)), mask=image)
     
     if not is_empty:
         tile.save(tile_file_name)
@@ -141,18 +143,18 @@ hashes_by_depth.append(dataset.hashes)
 worker_count = os.cpu_count()
 print("Using {:d} processes.".format(worker_count))
 
-for depth in range(TILE_DEPTH, -1, -1):
+for depth in range(TILE_DEPTH, -4, -1):
     pool = Pool(worker_count)
     progress = tqdm(total=(2**(2 * depth + 2)), desc='Depth {:d}'.format(depth + DEPTH_OFFSET))
 
     def on_complete(*_):
         progress.update()
 
-    for x in range(-2**depth, 2**depth):
+    for x in range(math.floor(-2**depth), math.ceil(2**depth)):
         tile_directory = os.path.dirname(TILE_FILE_FORMAT.format(depth + DEPTH_OFFSET, x, 0))
         if not os.path.exists(tile_directory):
             os.makedirs(tile_directory)
-        for y in range(-2**depth, 2**depth):
+        for y in range(math.floor(-2**depth), math.ceil(2**depth)):
             pool.apply_async(try_create_tile, args=(depth, x, y), callback=on_complete)
     pool.close()
     pool.join()
