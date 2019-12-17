@@ -10,6 +10,7 @@ from multiprocessing import Pool
 import traceback
 import math
 
+latent_codes = np.load('data/latent_codes.npy')
 codes = np.load('data/latent_codes_embedded_moved.npy')
 TILE_FILE_FORMAT = 'data/tiles/{:d}/{:d}/{:d}.jpg'
 
@@ -95,7 +96,7 @@ def try_create_tile(*args):
     except:
         traceback.print_exc()
 
-def kmeans(points, n):
+def kmeans(points, points_latent_codes, n):
     if n == 0:
         return
     if points.shape[0] <= n:
@@ -105,13 +106,13 @@ def kmeans(points, n):
     kmeans = KMeans(n_clusters=n)
     kmeans_clusters = kmeans.fit_predict(points)
     for i in range(n):
-        center = kmeans.cluster_centers_[i, :]
-        dist = np.linalg.norm(points - center[np.newaxis, :], axis=1)
-        yield np.argmin(dist)
+        indices = np.nonzero(kmeans_clusters == i)[0]
+        dist = np.linalg.norm(points_latent_codes[indices] - np.mean(points_latent_codes[indices], axis=0), axis=1)
+        yield indices[np.argmin(dist)]
 
 def get_kmeans_indices(count, subdivisions):
     if subdivisions == 1:
-        return np.array(list(kmeans(codes, count)), dtype=int)
+        return np.array(list(kmeans(codes, latent_codes, count)), dtype=int)
     
     result = []
     for x in tqdm(range(subdivisions)):
@@ -125,7 +126,7 @@ def get_kmeans_indices(count, subdivisions):
                 & (codes[:, 1] <= y_range[1])
             indices = np.nonzero(mask)[0]
             codes_mask = codes[mask, :]
-            for i in kmeans(codes_mask, int(count * indices.shape[0] / codes.shape[0])):
+            for i in kmeans(codes_mask, latent_codes[mask, :], int(count * indices.shape[0] / codes.shape[0])):
                 result.append(indices[i])
     return np.array(result, dtype=int)
 
