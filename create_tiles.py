@@ -9,7 +9,7 @@ import os
 from multiprocessing import Pool
 import traceback
 
-codes = np.load('data/latent_codes_embedded.npy')
+codes = np.load('data/latent_codes_embedded_moved.npy')
 TILE_FILE_FORMAT = 'data/tiles/{:d}/{:d}/{:d}.jpg'
 
 DEPTH_OFFSET = 8
