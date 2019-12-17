@@ -16,7 +16,7 @@ DEPTH_OFFSET = 8
 
 TILE_SIZE = 256
 IMAGE_SIZE = 128
-TILE_DEPTH = 7
+TILE_DEPTH = 8
 SHADOW_RADIUS = 12
 SHADOW_VALUE = 0.8
 
@@ -37,6 +37,7 @@ def create_tile(depth, x, y):
         return
     
     tile = Image.new("RGB", (TILE_SIZE, TILE_SIZE), (255, 255, 255))
+    is_empty = True
 
     codes_current = codes_by_depth[depth]
     hashes = hashes_by_depth[depth]
@@ -45,21 +46,25 @@ def create_tile(depth, x, y):
         for a in range(2):
             for b in range(2):
                 old_tile_file_name = TILE_FILE_FORMAT.format(depth + 1 + DEPTH_OFFSET, x * 2 + a, y * 2 + b)
+                if not os.path.exists(old_tile_file_name):
+                    continue
                 image = Image.open(old_tile_file_name)
                 image = image.resize((TILE_SIZE // 2, TILE_SIZE // 2), resample=Image.BICUBIC)
                 tile.paste(image, (a * TILE_SIZE // 2, b * TILE_SIZE // 2))
+                is_empty = False
 
-    if depth > 1:
-        margin = (IMAGE_SIZE / 2 + SHADOW_RADIUS) / TILE_SIZE
-        x_range = ((x - margin) / 2**depth, (x + 1 + margin) / 2**depth)
-        y_range = ((y - margin) / 2**depth, (y + 1 + margin) / 2**depth)
+    margin = (IMAGE_SIZE / 2 + SHADOW_RADIUS) / TILE_SIZE
+    x_range = ((x - margin) / 2**depth, (x + 1 + margin) / 2**depth)
+    y_range = ((y - margin) / 2**depth, (y + 1 + margin) / 2**depth)
 
-        mask = (codes_current[:, 0] > x_range[0]) \
-            & (codes_current[:, 0] < x_range[1]) \
-            & (codes_current[:, 1] > y_range[0]) \
-            & (codes_current[:, 1] < y_range[1])
-        indices = mask.nonzero()[0]
+    mask = (codes_current[:, 0] > x_range[0]) \
+        & (codes_current[:, 0] < x_range[1]) \
+        & (codes_current[:, 1] > y_range[0]) \
+        & (codes_current[:, 1] < y_range[1])
+    indices = mask.nonzero()[0]
 
+    if indices.shape[0] > 0 and depth > 1:
+        is_empty = False
         positions = codes_current[indices, :]
         positions *= 2**depth * TILE_SIZE
         positions -= np.array((x * TILE_SIZE, y * TILE_SIZE))[np.newaxis, :]
@@ -79,10 +84,8 @@ def create_tile(depth, x, y):
             tile.paste((0, 0, 0), (int(positions[i, 0] - IMAGE_SIZE // 2 - SHADOW_RADIUS), int(positions[i, 1] - IMAGE_SIZE // 2 - SHADOW_RADIUS)), mask=shadow_mask)
             tile.paste(image, (int(positions[i, 0] - IMAGE_SIZE // 2), int(positions[i, 1] - IMAGE_SIZE // 2)), mask=image)
     
-    tile_directory = os.path.dirname(tile_file_name)
-    if not os.path.exists(tile_directory):
-        os.makedirs(tile_directory)
-    tile.save(tile_file_name)
+    if not is_empty:
+        tile.save(tile_file_name)
 
 def try_create_tile(*args):
     try:
@@ -134,13 +137,13 @@ def get_kmeans_indices(count, subdivisions):
 for depth in range(TILE_DEPTH):
     print("Running k-means for depth {:d}.".format(depth))
     number_of_items = 2**(2*depth) * 2
-    indices = get_kmeans_indices(number_of_items, max(1, 2**(depth - 3)))
+    indices = get_kmeans_indices(number_of_items, max(1, 2**(depth - 2)))
     hashes = [dataset.hashes[i] for i in indices]
     codes_by_depth.append(codes[indices, :])
     hashes_by_depth.append(hashes)
 
 codes_by_depth.append(codes)
-codes_by_depth.append(dataset.hashes)
+hashes_by_depth.append(dataset.hashes)
 
 worker_count = os.cpu_count()
 print("Using {:d} processes.".format(worker_count))

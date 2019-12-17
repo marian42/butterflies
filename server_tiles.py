@@ -12,7 +12,10 @@ def index():
 
 @app.route('/tile/<depth>/<x>/<y>.png')
 def get_tile(depth, x, y):
-    depth, x, y = int(depth), int(x), int(y)
-    return send_file(TILE_FILE_FORMAT.format(depth, x, y))
+    try:
+        depth, x, y = int(depth), int(x), int(y)
+        return send_file(TILE_FILE_FORMAT.format(depth, x, y))
+    except FileNotFoundError:
+        return "Tile is empty", 404
 
 app.run(host='0.0.0.0')
