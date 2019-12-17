@@ -94,6 +94,8 @@ def try_create_tile(*args):
         traceback.print_exc()
 
 def kmeans(points, n):
+    if n == 0:
+        return
     if points.shape[0] <= n:
         for i in range (points.shape[0]):
             yield i
@@ -104,15 +106,6 @@ def kmeans(points, n):
         center = kmeans.cluster_centers_[i, :]
         dist = np.linalg.norm(points - center[np.newaxis, :], axis=1)
         yield np.argmin(dist)
-
-def get_circle_area_factor(x_range, y_range, k=10):
-    points = np.meshgrid(
-        np.linspace(x_range[0], x_range[1], k),
-        np.linspace(y_range[0], y_range[1], k)
-    )
-    points = np.stack(points)
-    points = points.reshape(2, -1).transpose()
-    return np.count_nonzero(np.linalg.norm(points, axis=1) < 1) / k**2
 
 def get_kmeans_indices(count, subdivisions):
     if subdivisions == 1:
@@ -130,7 +123,7 @@ def get_kmeans_indices(count, subdivisions):
                 & (codes[:, 1] <= y_range[1])
             indices = np.nonzero(mask)[0]
             codes_mask = codes[mask, :]
-            for i in kmeans(codes_mask, int(count / subdivisions**2 * get_circle_area_factor(x_range, y_range))):
+            for i in kmeans(codes_mask, int(count * indices.shape[0] / codes.shape[0])):
                 result.append(indices[i])
     return np.array(result, dtype=int)
 
