@@ -9,6 +9,7 @@ import os
 from multiprocessing import Pool
 import traceback
 import math
+import json
 
 latent_codes = np.load('data/latent_codes.npy')
 codes = np.load('data/latent_codes_embedded_moved.npy')
@@ -98,23 +99,25 @@ def try_create_tile(*args):
 
 def kmeans(points, points_latent_codes, n):
     if n == 0:
-        return
+        return [], np.zeros((0, 2))
     if points.shape[0] <= n:
-        for i in range (points.shape[0]):
-            yield i
-        return
+        return range(points.shape[0]), points
     kmeans = KMeans(n_clusters=n)
     kmeans_clusters = kmeans.fit_predict(points)
+    result_indices = []
     for i in range(n):
-        indices = np.nonzero(kmeans_clusters == i)[0]
-        dist = np.linalg.norm(points_latent_codes[indices] - np.mean(points_latent_codes[indices], axis=0), axis=1)
-        yield indices[np.argmin(dist)]
+        cluster_indices = np.nonzero(kmeans_clusters == i)[0]
+        dist = np.linalg.norm(points_latent_codes[cluster_indices] - np.mean(points_latent_codes[cluster_indices], axis=0), axis=1)
+        result_indices.append(cluster_indices[np.argmin(dist)])
+    return result_indices, kmeans.cluster_centers_
 
-def get_kmeans_indices(count, subdivisions):
+def get_kmeans(count, subdivisions):
     if subdivisions == 1:
-        return np.array(list(kmeans(codes, latent_codes, count)), dtype=int)
+        return kmeans(codes, latent_codes, count)
+        return np.array(list(), dtype=int)
     
-    result = []
+    result_indices = []
+    result_points = []
     for x in tqdm(range(subdivisions)):
         for y in range(subdivisions):
             x_range = (-1 + 2 * x / subdivisions, -1 + 2 * (x + 1) / subdivisions)
@@ -126,17 +129,25 @@ def get_kmeans_indices(count, subdivisions):
                 & (codes[:, 1] <= y_range[1])
             indices = np.nonzero(mask)[0]
             codes_mask = codes[mask, :]
-            for i in kmeans(codes_mask, latent_codes[mask, :], int(count * indices.shape[0] / codes.shape[0])):
-                result.append(indices[i])
-    return np.array(result, dtype=int)
+            kmeans_indices, kmeans_points = kmeans(codes_mask, latent_codes[mask, :], int(count * indices.shape[0] / codes.shape[0]))
+            for i in kmeans_indices:
+                result_indices.append(indices[i])
+            result_points.append(kmeans_points)
+    
+    return result_indices, np.concatenate(result_points)
 
 for depth in range(TILE_DEPTH):
     print("Running k-means for depth {:d}.".format(depth))
     number_of_items = 2**(2*depth) * 2
-    indices = get_kmeans_indices(number_of_items, max(1, 2**(depth - 2)))
-    hashes = [dataset.hashes[i] for i in indices]
-    codes_by_depth.append(codes[indices, :])
-    hashes_by_depth.append(hashes)
+    indices, points = get_kmeans(number_of_items, max(1, 2**(depth - 2)))
+    codes_by_depth.append(points)
+    hashes_by_depth.append([dataset.hashes[i] for i in indices])
+
+json_dict = {depth: [{'image': hash, 'x': codes_by_depth[depth][i, 0], 'x': codes_by_depth[depth][i, 1]} for i, hash in enumerate(hashes)] for depth, hashes in enumerate(hashes_by_depth)}
+json_string = json.dumps(json_dict)
+with open('data/clusters.json', 'w') as file:
+    file.write(json_string)
+
 
 codes_by_depth.append(codes)
 hashes_by_depth.append(dataset.hashes)
