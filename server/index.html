@@ -246,29 +246,10 @@
             request.open('GET', '/tsne.json');
             request.onload = function() {
                 if (request.status === 200) {
-                    var data = JSON.parse(request.responseText);
-                    for (var key in data) {
-                        var depth = Number(key);
-                        if (!Number.isInteger(depth)) {
-                            continue;
-                        }
-                        var quadCount = getQuadCount(depth);
-                        var quadsCurrentDepth = {};
-                        quads[depth] = quadsCurrentDepth;
-                        for (let item of data[depth]) {
-                            var x = Math.floor(item.x * quadCount);
-                            var y = Math.floor(item.y * quadCount);
-
-                            if (!(x in quadsCurrentDepth)) {
-                                quadsCurrentDepth[x] = {};
-                            }
-                            if (!(y in quadsCurrentDepth[x])) {
-                                quadsCurrentDepth[x][y] = [];
-                            }
-                            quadsCurrentDepth[x][y].push(item);
-                        }
-                    }
-                    names = data.names;
+                    quads = JSON.parse(request.responseText);
+                    
+                    names = quads.names;
+                    delete quads['names'];
                 }
             };
             request.send();

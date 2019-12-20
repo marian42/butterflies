@@ -2,6 +2,7 @@ import json
 from tqdm import tqdm
 from collections import Counter
 import csv
+import math
 
 class DataProperty():
     def __init__(self, column, name, type=str):
@@ -116,11 +117,18 @@ for row in reader_iterator:
         row_by_image[image] = row_by_id[id]
     progress.update()
 
-for depth in data:
-    items = data[depth]
+result = {}
+for depth_str in data:
+    depth = int(depth_str)
+    items = data[depth_str]   
+
+    quad_count = 2**(depth - 9)
+
+    quads = {}
     
-    for item in tqdm(items, desc="Depth {:s}".format(depth)):
+    for item in tqdm(items, desc="Depth {:d}".format(depth)):
         item['y'] *= -1
+
         row = row_by_image[item['image']]
         item['id'] = columns[0].values[row]
         item['occId'] = columns[1].values[row]
@@ -131,10 +139,19 @@ for depth in data:
             item['time'] = times[row]
         properties = [c.values[row] for c in columns[4:]]
         item['properties'] = [get_name_id(v) for v in properties + [names[row]]]
+
+        quad_x = math.floor(item['x'] * quad_count)
+        quad_y = math.floor(item['y'] * quad_count)
+
+        if quad_x not in quads:
+            quads[quad_x] = {}
+        if quad_y not in quads[quad_x]:
+            quads[quad_x][quad_y] = []
+        quads[quad_x][quad_y].append(item)
+    
+    result[depth] = quads
         
-data['names'] = strings
-
-
-json_string = json.dumps(data)
+result['names'] = strings
+json_string = json.dumps(result)
 with open('data/tsne.json', 'w') as file:
     file.write(json_string)
