@@ -1,68 +1,140 @@
-import numpy as np
 import json
-from sklearn.cluster import KMeans
-from itertools import count
 from tqdm import tqdm
+from collections import Counter
+import csv
 
-ITEMS_PER_QUAD = 16
+class DataProperty():
+    def __init__(self, column, name, type=str):
+        self.column = column
+        self.name = name
+        self.values = []
+        self.type = type
 
-codes = np.load('data/latent_codes_embedded.npy')
+columns = [
+    DataProperty(0, 'id', int),
+    DataProperty(51, 'Occurence ID'),
+    DataProperty(10, 'Latitude', float),
+    DataProperty(11, 'Longitude', float),
+    DataProperty(17, 'Family'),
+    DataProperty(20, 'Genus'),
+    DataProperty(62, 'Species'),
+    DataProperty(31, 'Subspecies'),
+    DataProperty(61, 'Sex'),
+    DataProperty(8, 'Country'),
+]
 
-min_value = np.min(codes, axis=0)
-max_value = np.max(codes, axis=0)
-codes -= (max_value + min_value) / 2
-codes /= np.max(codes, axis=0)
+file = open('data/occurrence.csv', 'r')
+reader = csv.reader(file)
+reader_iterator = iter(reader)
+column_names = next(reader_iterator)
 
-from image_loader import ImageDataset
-dataset = ImageDataset()
+times = []
+names = []
 
-def create_json_item(index):
-    return {'x': codes[index, 0].item(), 'y': codes[index, 1].item(), 'hash': dataset.hashes[index]}
+# Name:
+# Class (Insecta) > Order (Lepidoptera) > Family (Papilionidae) > Genus > Species / Specific Epithet > Subspecies / Infraspecific Epithet
 
-def select_indices(x_range, y_range):
-    candidates = remaining_indices \
-        & (codes[:, 0] > x_range[0]) \
-        & (codes[:, 0] <= x_range[1]) \
-        & (codes[:, 1] > y_range[0]) \
-        & (codes[:, 1] <= y_range[1]) \
+MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
-    candidate_codes = codes[candidates, :]
+row_by_id = {}
 
-    if candidate_codes.shape[0] <= ITEMS_PER_QUAD:
-        return candidates.nonzero()[0]
+row_index = 0
+progress = tqdm(total=1039840, desc='Reading occurence.csv')
 
-    kmeans = KMeans(n_clusters=ITEMS_PER_QUAD)
-    indices = np.zeros(ITEMS_PER_QUAD, dtype=int)
-    kmeans_clusters = kmeans.fit_predict(candidate_codes)
-    for i in range(ITEMS_PER_QUAD):
-        center = kmeans.cluster_centers_[i, :]
-        dist = np.linalg.norm(candidate_codes - center[np.newaxis, :], axis=1)
-        indices[i] = np.argmin(dist)
-    return candidates.nonzero()[0][indices]
+def try_make_int(string):
+    try:
+        return int(string)
+    except:
+        return None
 
-result = {}
-remaining_indices = np.ones(codes.shape[0], dtype=bool)
+def get_time(row):    
+    day = try_make_int(row[9])
+    month = try_make_int(row[50])
+    year = try_make_int(row[70])
 
-for depth in count():
-    quads = {}
-    for x in tqdm(range(2**depth)):
-        for y in range(2**depth):
-            x_range = (-1 + x * 2 / (2**depth), -1 + (x+1) * 2 / (2**depth))
-            y_range = (-1 + y * 2 / (2**depth), -1 + (y+1) * 2 / (2**depth))
+    try:
+        if day is not None and month is not None and year is not None:
+            return '{:s} {:d}, {:d}'.format(MONTHS[month], day, year)
+        elif month is not None and year is not None:
+            return '{:s} {:d}'.format(MONTHS[month - 1], year)
+        elif year is not None:
+            return str(year)
+        else:
+            return None
+    except:
+        return None
 
-            indices = select_indices(x_range, y_range)
+for row in reader_iterator:
+    id = int(row[0])
+    higher_classification = row[25]
+    progress.update()
+    if 'papilionoidea' not in higher_classification.lower():
+        continue
 
-            if len(indices) > 0:
-                remaining_indices[indices] = 0
-                quad = [create_json_item(i) for i in indices]
-                if x not in quads:
-                    quads[x] = {}
-                quads[x][y] = {'items': quad}
-    print("Depth {:d}, {:d} quads, {:d} remaining".format(depth, len(quads), np.count_nonzero(remaining_indices)))
-    if len(quads) == 0 or np.count_nonzero(remaining_indices) < 100:
-        break
-    result[depth] = quads
+    for data_property in columns:
+        try:
+            data_property.values.append(data_property.type(row[data_property.column].strip()))
+        except ValueError:
+            data_property.values.append(None)   
 
-json_string = json.dumps(result)
+    name = row[59]
+    name_author = row[60]
+    if name.endswith(name_author):
+        name = name[:-len(name_author)].strip()
+    names.append(name)
+    times.append(get_time(row))
+
+    row_by_id[id] = row_index
+    row_index += 1
+
+strings = []
+name_ids = {}
+
+def get_name_id(value):
+    if value not in name_ids:
+        name_ids[value] = len(strings)
+        strings.append(value)
+    return name_ids[value]
+
+# Rights: CC BY 4.0 The Trustees of the Natural History Museum, London
+
+data = json.load(open('data/clusters.json', 'r'))
+
+file = open('data/multimedia.csv', 'r')
+reader = csv.reader(file)
+reader_iterator = iter(reader)
+column_names = next(reader_iterator)
+
+progress = tqdm(total=2126980, desc='Reading multimedia.csv')
+
+row_by_image = dict()
+
+for row in reader_iterator:
+    id = int(row[0])
+    image = row[5].split('/')[-3]
+    if id in row_by_id:
+        row_by_image[image] = row_by_id[id]
+    progress.update()
+
+for depth in data:
+    items = data[depth]
+    
+    for item in tqdm(items, desc="Depth {:s}".format(depth)):
+        item['y'] *= -1
+        row = row_by_image[item['image']]
+        item['id'] = columns[0].values[row]
+        item['occId'] = columns[1].values[row]
+        if columns[2].values[row] is not None and columns[3].values[row] is not None:
+            item['lat'] = columns[2].values[row]
+            item['lon'] = columns[3].values[row]
+        if times[row] is not None:
+            item['time'] = times[row]
+        properties = [c.values[row] for c in columns[4:]]
+        item['properties'] = [get_name_id(v) for v in properties + [names[row]]]
+        
+data['names'] = strings
+
+
+json_string = json.dumps(data)
 with open('data/tsne.json', 'w') as file:
     file.write(json_string)

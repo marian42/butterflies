@@ -33,23 +33,84 @@
                 background-color: #FFFFFF;
             }
 
-            .leaflet-marker-icon {
-                animation: fadein 0.4s;
+            .leaflet-popup-content-wrapper {
+                border-radius: 0;
             }
 
-            @keyframes fadein {
-                from { opacity: 0; }
-                to   { opacity: 1; }
+            .leaflet-popup-close-button {
+                padding: 10px;
+                font-size: 24px;
+            }
+
+            .leaflet-popup-content img {
+                width: 450px;
+                min-height: 300px;
+            }
+
+            .leaflet-popup-content h1 a {
+                color: #000000;
+                text-decoration: none;
+            }
+
+            .butterfly {
+                border: 1px red solid;
             }
         </style>
         <script>
-            const ICON_SIZE = 32;
-            const ZOOM_OFFSET = 7;
+            var names = [];
 
-            var data = null;
-            var visibleDepth = 0;
+            var quads = {};
             var visibleQuads = {};
-            var quadLoadingQueue = [];
+
+            const ICON_WIDTH = 128;
+            const ICON_HEIGHT = 96;
+
+            const icon = L.divIcon({
+                className: 'butterfly', 
+                iconSize: [ICON_WIDTH, ICON_HEIGHT],
+                iconAnchor: [ICON_WIDTH / 2, ICON_HEIGHT / 2],
+                popupAnchor: [0, -ICON_HEIGHT  / 2]
+            });
+
+            function createPopup(marker) {
+                var item = marker.item;
+                var properties = [];
+                for (let index of item.properties) {
+                    properties.push(names[index]);
+                }
+                result = '<h1><a href="https://data.nhm.ac.uk/object/' + item.occId + '">' + properties[6] + '</a></h1>';
+                var imageUrl = 'https://www.nhm.ac.uk/services/media-store/asset/' + item.image + '/contents/preview';
+                result += '<a href="' + imageUrl + '"><img src="' + imageUrl + '"></a>';
+                for (let property of properties) {
+                    result += property + '<br>';
+                }
+                return result;
+            }
+
+            function createMarkers(items) {
+                for (let item of items) {
+                    latLng = [item.y, item.x];
+                    var marker = L.marker(latLng, {
+                        icon: icon,
+                        alt: names[item.properties[6]]
+                    });
+                    marker.item = item;
+                    item.marker = marker;
+                    marker.bindPopup(createPopup, {maxWidth: 450});
+                    marker.addTo(map);
+                }
+            }
+
+            function hideMarkers(items) {
+                if (items === undefined) {
+                    return;
+                }
+                for (let item of items) {
+                    if (item.marker != undefined) {
+                        item.marker.remove();
+                    }
+                }
+            }
 
             function setQuadVisibility(depth, x, y, value) {
                 if (!(depth in visibleQuads)) {
@@ -75,153 +136,139 @@
                 return y in visibleQuads[depth][x]
             }
 
-            function createMarker(item) {
-                latLng = [item.y, item.x];
-                var layer = L.marker(latLng, {
-                    icon: L.icon({
-                        iconUrl: 'image/' + item.hash,
-                        iconSize: [ICON_SIZE, ICON_SIZE],
-                        iconAnchor: [ICON_SIZE / 2, ICON_SIZE / 2],
-                        popupAnchor: [0, -ICON_SIZE  / 2]
-                    })
-                });
-                layer.bindPopup('<img src="image/' + item.hash + '" width="128"><br><a href="https://www.nhm.ac.uk/services/media-store/asset/' + item.hash + '/contents/preview">source image</a>');
-                layer.addTo(map);
-                item.layer = layer;
+            function logVisibleQuadsInfo(depth) {
+                var totalQuads = 0;
+                var totalItems = 0;
+                for (var x in visibleQuads[depth]) {
+                    for (var y in visibleQuads[depth][x]) {
+                        totalQuads++;
+                        totalItems += quads[depth][x][y].length;
+                    }
+                }
+                console.log("Showing " + totalQuads + " quads with " + totalItems + " items.");
             }
 
-            function hideQuad(depth, x, y) {
-                quad = data[depth][x][y];
-                for (item of quad.items) {
-                    map.removeLayer(item.layer);
-                }
+            function padBounds(bounds, paddingX, paddingY) {
+                var padding = L.point(paddingX, paddingY);
+
+                var corner1 = map.project(bounds.getNorthWest());
+                corner1 = corner1.subtract(padding);
+                var corner2 = map.project(bounds.getSouthEast());
+                corner2 = corner2.add(padding);
+
+                return L.latLngBounds(map.unproject(corner1), map.unproject(corner2));
             }
 
-            var loadingQueueActive = false;
+            function updateLayers() {
+                var depth = map.getZoom();
+                
+                var quadsCurrentDepth = quads[depth];
+                var quadCount = getQuadCount(depth);
+                bounds = padBounds(map.getBounds(), ICON_WIDTH / 2, ICON_HEIGHT / 2);
 
-            function updateQuadLoadingQueue() {
-                if (quadLoadingQueue.length == 0) {
-                    loadingQueueActive = false;
-                    return;
-                }
+                var xRange = [
+                    Math.floor(bounds.getWest() * quadCount),
+                    Math.floor(bounds.getEast() * quadCount)
+                ];
+                var yRange = [
+                    Math.floor(bounds.getSouth() * quadCount),
+                    Math.floor(bounds.getNorth() * quadCount)
+                ];
 
-                loadingQueueActive = true;
-                while (quadLoadingQueue.length > 0) {
-                    var coords = quadLoadingQueue[0];
-                    quadLoadingQueue.shift();
-                    var depth = coords[0];
-                    var x = coords[1];
-                    var y = coords[2];
-                    if (!getQuadVisibility(depth, x, y)) {
-                        continue;
-                    }
-
-                    var quad = data[depth][x][y];
-                    for (let item of quad.items) {
-                        createMarker(item);
-                    }
-                    
-                    break;
-                }
-                setTimeout(updateQuadLoadingQueue, 1);
-            }
-
-            function updateLayers(event) {
-                var targetZoomLevel = event !== undefined && event.zoom !== undefined ? event.zoom : map.getZoom();
-                if (targetZoomLevel === undefined) {
-                    return;
-                }
-                if (targetZoomLevel > map.getZoom() && event.type == 'zoomanim') {
-                    return;
-                }
-
-                var bounds = map.getBounds();
-                currentDepth = Math.max(0, targetZoomLevel - ZOOM_OFFSET);
-
-                for (var depth = 0; depth <= currentDepth; depth++) {
-                    if (!(depth in data)) {
-                        break;
-                    }
-                    var xRange = [
-                        Math.max(0, Math.floor((bounds.getWest() + 1) / 2 * Math.pow(2, depth))),
-                        Math.min(Math.ceil((bounds.getEast() + 1) / 2 * Math.pow(2, depth)), Math.pow(2, depth) - 1)
-                    ];
-                    var yRange = [
-                        Math.max(0, Math.floor((bounds.getSouth() + 1) / 2 * Math.pow(2, depth))),
-                        Math.min(Math.ceil((bounds.getNorth() + 1) / 2 * Math.pow(2, depth)), Math.pow(2, depth) - 1)
-                    ];
-
+                // Show new quads
+                if (depth in quads && depth >= 10) {
                     for (var x = xRange[0]; x <= xRange[1]; x++) {
-                        if (!(x in data[depth])) {
+                        if (!(x in quadsCurrentDepth)) {
                             continue;
                         }
                         for (var y = yRange[0]; y <= yRange[1]; y++) {
-                            if (!(y in data[depth][x])) {
-                                continue;
-                            }
-                            if (!getQuadVisibility(depth, x, y)) {
-                                setQuadVisibility(depth, x, y, true);
-                                quadLoadingQueue.push([depth, x, y]);
-                                if (!loadingQueueActive) {
-                                    updateQuadLoadingQueue();
-                                }
-                            }
+                            if (y in quadsCurrentDepth[x]) {
+                                if (!getQuadVisibility(depth, x, y)) {
+                                    createMarkers(quadsCurrentDepth[x][y]);
+                                    setQuadVisibility(depth, x, y, true);
+                                }                            
+                            }                           
                         }
-                    }
-
-                    var quadsToBeRemoved = [];
-                    if (depth in visibleQuads) {
-                        for (var x in visibleQuads[depth]) {
-                            for (var y in visibleQuads[depth][x]) {
-                                if (x < xRange[0] || x > xRange[1] || y < yRange[0] || y > yRange[1]) {
-                                    quadsToBeRemoved.push([x, y]);
-                                    hideQuad(depth, x, y);
-                                }
-                            }
-                        }
-                    }
-                    for (let item of quadsToBeRemoved) {
-                        setQuadVisibility(depth, item[0], item[1], false);
                     }
                 }
 
-                if (currentDepth < visibleDepth) {
-                    for (var depth = visibleDepth; depth > currentDepth; depth--) {
-                        if (!(depth in visibleQuads)) {
-                            continue;
+                // Hide old quads
+                var hidden = [];
+                for (var d in visibleQuads) {
+                    if (d == depth) {
+                        continue;
+                    }
+                    for (var x in visibleQuads[d]) {
+                        for (var y in visibleQuads[d][x]) {
+                            hideMarkers(quads[d][x][y]);
+                            hidden.push([d, x, y]);
                         }
-                        for (var x in visibleQuads[depth]) {
-                            for (var y in visibleQuads[depth][x]) {
-                                quadsToBeRemoved.push([x, y]);
-                                hideQuad(depth, x, y);
-                            }
-                        }
-                        visibleQuads[depth] = {};
                     }
                 }
-                visibleDepth = currentDepth;
+                for (var x in visibleQuads[depth]) {
+                    for (var y in visibleQuads[depth][x]) {
+                        if (x < xRange[0] || x > xRange[1] || y < yRange[0] || y > yRange[1]) {
+                            hideMarkers(quads[d][x][y]);
+                            hidden.push([d, x, y]);
+                        }
+                    }
+                }
+                for (let quadAddress of hidden) {
+                    setQuadVisibility(quadAddress[0], quadAddress[1], quadAddress[2], false);
+                }
+
+                logVisibleQuadsInfo(depth);
             }
-            
+
+            function getQuadCount(depth) {
+                return Math.pow(2, depth - 9);
+            }
+
             var map = L.map('map', {
                 zoomControl: true,
-                center: [0, 0],
-                zoom: 9,
-                minZoom: 0,
-                crs: L.CRS.Simple,
-                maxBounds: [[-1, -1], [1, 1]]
+                minZoom: 5,
+                maxZoom: 16,
+                crs: L.CRS.Simple
             });
+
+            L.tileLayer('tile/{z}/{x}/{y}.png', {
+                minZoom: 5,
+                maxZoom: 16,
+                bounds: [[-1, -1], [1, 1]]
+            }).addTo(map);
+
+            map.fitBounds([[-1, -1], [1, 1]]);
             
-            map.on('zoomanim', updateLayers);
             map.on('zoomend', updateLayers);
             map.on('moveend', updateLayers);
-
             
             var request = new XMLHttpRequest();
             request.open('GET', '/tsne.json');
             request.onload = function() {
                 if (request.status === 200) {
-                    data = JSON.parse(request.responseText);
-                    updateLayers();
+                    var data = JSON.parse(request.responseText);
+                    for (var key in data) {
+                        var depth = Number(key);
+                        if (!Number.isInteger(depth)) {
+                            continue;
+                        }
+                        var quadCount = getQuadCount(depth);
+                        var quadsCurrentDepth = {};
+                        quads[depth] = quadsCurrentDepth;
+                        for (let item of data[depth]) {
+                            var x = Math.floor(item.x * quadCount);
+                            var y = Math.floor(item.y * quadCount);
+
+                            if (!(x in quadsCurrentDepth)) {
+                                quadsCurrentDepth[x] = {};
+                            }
+                            if (!(y in quadsCurrentDepth[x])) {
+                                quadsCurrentDepth[x][y] = [];
+                            }
+                            quadsCurrentDepth[x][y].push(item);
+                        }
+                    }
+                    names = data.names;
                 }
             };
             request.send();
