@@ -159,14 +159,8 @@
                 return L.latLngBounds(map.unproject(corner1), map.unproject(corner2));
             }
 
-            function updateLayers(event) {
-                var depth = event !== undefined && event.zoom !== undefined ? event.zoom : map.getZoom();
-                if (depth === undefined) {
-                    return;
-                }
-                if (depth > map.getZoom() && event.type == 'zoomanim') {
-                    return;
-                }
+            function updateLayers() {
+                var depth = map.getZoom();
                 
                 var quadsCurrentDepth = quads[depth];
                 var quadCount = getQuadCount(depth);
@@ -244,8 +238,7 @@
             }).addTo(map);
 
             map.fitBounds([[-1, -1], [1, 1]]);
-
-            map.on('zoomanim', updateLayers);
+            
             map.on('zoomend', updateLayers);
             map.on('moveend', updateLayers);
             
