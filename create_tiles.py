@@ -143,7 +143,7 @@ for depth in range(TILE_DEPTH):
     codes_by_depth.append(points)
     hashes_by_depth.append([dataset.hashes[i] for i in indices])
 
-json_dict = {depth: [{'image': hash, 'x': codes_by_depth[depth][i, 0], 'x': codes_by_depth[depth][i, 1]} for i, hash in enumerate(hashes)] for depth, hashes in enumerate(hashes_by_depth)}
+json_dict = {depth + DEPTH_OFFSET: [{'image': hash, 'x': codes_by_depth[depth][i, 0], 'y': codes_by_depth[depth][i, 1]} for i, hash in enumerate(hashes)] for depth, hashes in enumerate(hashes_by_depth)}
 json_string = json.dumps(json_dict)
 with open('data/clusters.json', 'w') as file:
     file.write(json_string)

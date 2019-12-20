@@ -33,16 +33,94 @@
                 background-color: #FFFFFF;
             }
 
-            .leaflet-marker-icon {
-                animation: fadein 0.4s;
+            .leaflet-popup-content-wrapper {
+                border-radius: 0;
             }
 
-            @keyframes fadein {
-                from { opacity: 0; }
-                to   { opacity: 1; }
+            .leaflet-popup-close-button {
+                padding: 10px;
+                font-size: 24px;
+            }
+
+            .leaflet-popup-content img {
+                width: 450px;
+                min-height: 300px;
+            }
+
+            .leaflet-popup-content h1 a {
+                color: #000000;
+                text-decoration: none;
+            }
+
+            .butterfly {
+                border: 1px red solid;
             }
         </style>
         <script>
+            var data = {};
+            var names = [];
+
+            depthsShown = {};
+
+            const ICON_WIDTH = 128;
+            const ICON_HEIGHT = 96;
+
+            const icon = L.divIcon({
+                className: 'butterfly', 
+                iconSize: [ICON_WIDTH, ICON_HEIGHT],
+                iconAnchor: [ICON_WIDTH / 2, ICON_HEIGHT / 2],
+                popupAnchor: [0, -ICON_HEIGHT  / 2]
+            });
+
+            function createPopup(marker) {
+                var item = marker.item;
+                var properties = [];
+                for (let index of item.properties) {
+                    properties.push(names[index]);
+                }
+                result = '<h1><a href="https://data.nhm.ac.uk/object/' + item.occId + '">' + properties[6] + '</a></h1>';
+                var imageUrl = 'https://www.nhm.ac.uk/services/media-store/asset/' + item.image + '/contents/preview';
+                result += '<a href="' + imageUrl + '"><img src="' + imageUrl + '"></a>';
+                for (let property of properties) {
+                    result += property + '<br>';
+                }
+                return result;
+            }
+
+            function updateLayers(event) {
+                var targetZoomLevel = event !== undefined && event.zoom !== undefined ? event.zoom : map.getZoom();
+                if (targetZoomLevel === undefined) {
+                    return;
+                }
+                if (targetZoomLevel > map.getZoom() && event.type == 'zoomanim') {
+                    return;
+                }
+
+                depth = targetZoomLevel;
+                
+                if (!(depth in data) || depth < 10) {
+                    return;
+                }
+
+                if (depth in depthsShown) {
+                    return;
+                }
+
+                depthsShown[depth] = true;
+
+                items = data[depth];
+                for (let item of items) {
+                    console.log(item);
+                    latLng = [-item.y, item.x];
+                    var layer = L.marker(latLng, {
+                        icon: icon
+                    });
+                    layer.item = item;
+                    layer.bindPopup(createPopup, {maxWidth: 450});
+                    layer.addTo(map);
+                }
+            }
+
             var map = L.map('map', {
                 zoomControl: true,
                 minZoom: 5,
@@ -57,6 +135,20 @@
             }).addTo(map);
 
             map.fitBounds([[-1, -1], [1, 1]]);
+
+            map.on('zoomanim', updateLayers);
+            map.on('zoomend', updateLayers);
+            map.on('moveend', updateLayers);
+            
+            var request = new XMLHttpRequest();
+            request.open('GET', '/tsne.json');
+            request.onload = function() {
+                if (request.status === 200) {
+                    data = JSON.parse(request.responseText);
+                    names = data.names;
+                }
+            };
+            request.send();
         </script>
     </body>
 </html>

@@ -18,4 +18,8 @@ def get_tile(depth, x, y):
     except FileNotFoundError:
         return "Tile is empty", 404
 
+@app.route('/tsne.json')
+def get_tsne():
+    return send_file('data/tsne.json')
+
 app.run(host='0.0.0.0')
