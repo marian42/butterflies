@@ -120,6 +120,7 @@ for depth in data:
     items = data[depth]
     
     for item in tqdm(items, desc="Depth {:s}".format(depth)):
+        item['y'] *= -1
         row = row_by_image[item['image']]
         item['id'] = columns[0].values[row]
         item['occId'] = columns[1].values[row]

@@ -57,10 +57,10 @@
             }
         </style>
         <script>
-            var data = {};
             var names = [];
 
-            depthsShown = {};
+            var quads = {};
+            var visibleQuads = {};
 
             const ICON_WIDTH = 128;
             const ICON_HEIGHT = 96;
@@ -87,38 +87,147 @@
                 return result;
             }
 
-            function updateLayers(event) {
-                var targetZoomLevel = event !== undefined && event.zoom !== undefined ? event.zoom : map.getZoom();
-                if (targetZoomLevel === undefined) {
-                    return;
-                }
-                if (targetZoomLevel > map.getZoom() && event.type == 'zoomanim') {
-                    return;
-                }
-
-                depth = targetZoomLevel;
-                
-                if (!(depth in data) || depth < 10) {
-                    return;
-                }
-
-                if (depth in depthsShown) {
-                    return;
-                }
-
-                depthsShown[depth] = true;
-
-                items = data[depth];
+            function createMarkers(items) {
                 for (let item of items) {
-                    console.log(item);
-                    latLng = [-item.y, item.x];
-                    var layer = L.marker(latLng, {
-                        icon: icon
+                    latLng = [item.y, item.x];
+                    var marker = L.marker(latLng, {
+                        icon: icon,
+                        alt: names[item.properties[6]]
                     });
-                    layer.item = item;
-                    layer.bindPopup(createPopup, {maxWidth: 450});
-                    layer.addTo(map);
+                    marker.item = item;
+                    item.marker = marker;
+                    marker.bindPopup(createPopup, {maxWidth: 450});
+                    marker.addTo(map);
                 }
+            }
+
+            function hideMarkers(items) {
+                if (items === undefined) {
+                    return;
+                }
+                for (let item of items) {
+                    if (item.marker != undefined) {
+                        item.marker.remove();
+                    }
+                }
+            }
+
+            function setQuadVisibility(depth, x, y, value) {
+                if (!(depth in visibleQuads)) {
+                    visibleQuads[depth] = {};
+                }
+                if (!(x in visibleQuads[depth])) {
+                    visibleQuads[depth][x] = {};
+                }
+                if (value) {
+                    visibleQuads[depth][x][y] = true;
+                } else {
+                    delete visibleQuads[depth][x][y];
+                }
+            }
+
+            function getQuadVisibility(depth, x, y) {
+                if (!(depth in visibleQuads)) {
+                    return false;
+                }
+                if (!(x in visibleQuads[depth])) {
+                    return false;
+                }
+                return y in visibleQuads[depth][x]
+            }
+
+            function logVisibleQuadsInfo(depth) {
+                var totalQuads = 0;
+                var totalItems = 0;
+                for (var x in visibleQuads[depth]) {
+                    for (var y in visibleQuads[depth][x]) {
+                        totalQuads++;
+                        totalItems += quads[depth][x][y].length;
+                    }
+                }
+                console.log("Showing " + totalQuads + " quads with " + totalItems + " items.");
+            }
+
+            function padBounds(bounds, paddingX, paddingY) {
+                var padding = L.point(paddingX, paddingY);
+
+                var corner1 = map.project(bounds.getNorthWest());
+                corner1 = corner1.subtract(padding);
+                var corner2 = map.project(bounds.getSouthEast());
+                corner2 = corner2.add(padding);
+
+                return L.latLngBounds(map.unproject(corner1), map.unproject(corner2));
+            }
+
+            function updateLayers(event) {
+                var depth = event !== undefined && event.zoom !== undefined ? event.zoom : map.getZoom();
+                if (depth === undefined) {
+                    return;
+                }
+                if (depth > map.getZoom() && event.type == 'zoomanim') {
+                    return;
+                }
+                
+                var quadsCurrentDepth = quads[depth];
+                var quadCount = getQuadCount(depth);
+                bounds = padBounds(map.getBounds(), ICON_WIDTH / 2, ICON_HEIGHT / 2);
+
+                var xRange = [
+                    Math.floor(bounds.getWest() * quadCount),
+                    Math.floor(bounds.getEast() * quadCount)
+                ];
+                var yRange = [
+                    Math.floor(bounds.getSouth() * quadCount),
+                    Math.floor(bounds.getNorth() * quadCount)
+                ];
+
+                // Show new quads
+                if (depth in quads && depth >= 10) {
+                    for (var x = xRange[0]; x <= xRange[1]; x++) {
+                        if (!(x in quadsCurrentDepth)) {
+                            continue;
+                        }
+                        for (var y = yRange[0]; y <= yRange[1]; y++) {
+                            if (y in quadsCurrentDepth[x]) {
+                                if (!getQuadVisibility(depth, x, y)) {
+                                    createMarkers(quadsCurrentDepth[x][y]);
+                                    setQuadVisibility(depth, x, y, true);
+                                }                            
+                            }                           
+                        }
+                    }
+                }
+
+                // Hide old quads
+                var hidden = [];
+                for (var d in visibleQuads) {
+                    if (d == depth) {
+                        continue;
+                    }
+                    for (var x in visibleQuads[d]) {
+                        for (var y in visibleQuads[d][x]) {
+                            hideMarkers(quads[d][x][y]);
+                            hidden.push([d, x, y]);
+                        }
+                    }
+                }
+                for (var x in visibleQuads[depth]) {
+                    for (var y in visibleQuads[depth][x]) {
+                        if (x < xRange[0] || x > xRange[1] || y < yRange[0] || y > yRange[1]) {
+                            hideMarkers(quads[d][x][y]);
+                            hidden.push([d, x, y]);
+                        }
+                    }
+                }
+                for (let quadAddress of hidden) {
+                    setQuadVisibility(quadAddress[0], quadAddress[1], quadAddress[2], false);
+                }
+
+                logVisibleQuadsInfo(depth);
+            }
+
+            function getQuadCount(depth) {
+                return Math.pow(2, depth - 9);
             }
 
             var map = L.map('map', {
@@ -144,7 +253,28 @@
             request.open('GET', '/tsne.json');
             request.onload = function() {
                 if (request.status === 200) {
-                    data = JSON.parse(request.responseText);
+                    var data = JSON.parse(request.responseText);
+                    for (var key in data) {
+                        var depth = Number(key);
+                        if (!Number.isInteger(depth)) {
+                            continue;
+                        }
+                        var quadCount = getQuadCount(depth);
+                        var quadsCurrentDepth = {};
+                        quads[depth] = quadsCurrentDepth;
+                        for (let item of data[depth]) {
+                            var x = Math.floor(item.x * quadCount);
+                            var y = Math.floor(item.y * quadCount);
+
+                            if (!(x in quadsCurrentDepth)) {
+                                quadsCurrentDepth[x] = {};
+                            }
+                            if (!(y in quadsCurrentDepth[x])) {
+                                quadsCurrentDepth[x][y] = [];
+                            }
+                            quadsCurrentDepth[x][y].push(item);
+                        }
+                    }
                     names = data.names;
                 }
             };
