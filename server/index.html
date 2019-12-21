@@ -57,10 +57,41 @@
             }
         </style>
         <script>
+            class TripleSet {
+                constructor() {
+                    this.data = {};
+                }
+
+                contains(a, b, c) {
+                    if (!(a in this.data)) {
+                        return false;
+                    }
+                    if (!(b in this.data[a])) {
+                        return false;
+                    }
+                    return c in this.data[a][b];
+                }
+
+                update(a, b, c, isInSet) {
+                    if (!(a in this.data)) {
+                        this.data[a] = {};
+                    }
+                    if (!(b in this.data[a])) {
+                        this.data[a][b] = {};
+                    }
+                    if (isInSet) {
+                        this.data[a][b][c] = true;
+                    } else {
+                        delete this.data[a][b][c];
+                    }
+                }
+            }
+
             var names = [];
 
             var quads = {};
-            var visibleQuads = {};
+            var visibleQuads = new TripleSet();
+            var dataQuadsRequested = new TripleSet();
 
             const ICON_WIDTH = 128;
             const ICON_HEIGHT = 96;
@@ -112,40 +143,70 @@
                 }
             }
 
-            function setQuadVisibility(depth, x, y, value) {
-                if (!(depth in visibleQuads)) {
-                    visibleQuads[depth] = {};
-                }
-                if (!(x in visibleQuads[depth])) {
-                    visibleQuads[depth][x] = {};
-                }
-                if (value) {
-                    visibleQuads[depth][x][y] = true;
-                } else {
-                    delete visibleQuads[depth][x][y];
-                }
-            }
-
-            function getQuadVisibility(depth, x, y) {
-                if (!(depth in visibleQuads)) {
-                    return false;
-                }
-                if (!(x in visibleQuads[depth])) {
-                    return false;
-                }
-                return y in visibleQuads[depth][x]
-            }
-
             function logVisibleQuadsInfo(depth) {
                 var totalQuads = 0;
                 var totalItems = 0;
-                for (var x in visibleQuads[depth]) {
-                    for (var y in visibleQuads[depth][x]) {
+                for (var x in visibleQuads.data[depth]) {
+                    for (var y in visibleQuads.data[depth][x]) {
                         totalQuads++;
                         totalItems += quads[depth][x][y].length;
                     }
                 }
                 console.log("Showing " + totalQuads + " quads with " + totalItems + " items.");
+            }
+
+            function fetchMetadataQuad(depth, x, y) {
+                dataQuadsRequested.update(depth, x, y, true);
+                var request = new XMLHttpRequest();
+                request.open('GET', '/meta/' + depth + '_' + x + '_' + y + '.json');
+                request.onload = function() {
+                    if (request.status === 200) {
+                        if(!(depth in quads)) {
+                            quads[depth] = {};
+                        }
+                        new_quads = JSON.parse(request.responseText);
+                        for (var x in new_quads) {
+                            if(!(x in quads[depth])) {
+                                quads[depth][x] = {}
+                            }
+                            for (var y in new_quads[x]) {
+                                quads[depth][x][y] = new_quads[x][y]
+                            }
+                        }
+                        updateMarkers();
+                    } else {
+                        dataQuadsRequested.update(depth, x, y, false);
+                    }
+                };
+                request.send();
+            }
+
+            function checkMetadataQuads() {
+                var depth = map.getZoom();
+
+                if (depth < 13) {
+                    return;
+                }
+
+                var quadCount = getQuadCount(depth) / 16;
+                var bounds = padBounds(map.getBounds(), ICON_WIDTH / 2, ICON_HEIGHT / 2);
+
+                var xRange = [
+                    Math.floor(bounds.getWest() * quadCount),
+                    Math.floor(bounds.getEast() * quadCount)
+                ];
+                var yRange = [
+                    Math.floor(bounds.getSouth() * quadCount),
+                    Math.floor(bounds.getNorth() * quadCount)
+                ];
+
+                for (var x = xRange[0]; x <= xRange[1]; x++) {
+                    for (var y = yRange[0]; y <= yRange[1]; y++) {
+                        if (!dataQuadsRequested.contains(depth, x, y)) {
+                            fetchMetadataQuad(depth, x, y);
+                        }
+                    }
+                }
             }
 
             function padBounds(bounds, paddingX, paddingY) {
@@ -159,7 +220,7 @@
                 return L.latLngBounds(map.unproject(corner1), map.unproject(corner2));
             }
 
-            function updateLayers() {
+            function updateMarkers() {
                 var depth = map.getZoom();
                 
                 var quadsCurrentDepth = quads[depth];
@@ -183,30 +244,30 @@
                         }
                         for (var y = yRange[0]; y <= yRange[1]; y++) {
                             if (y in quadsCurrentDepth[x]) {
-                                if (!getQuadVisibility(depth, x, y)) {
+                                if (!visibleQuads.contains(depth, x, y)) {
                                     createMarkers(quadsCurrentDepth[x][y]);
-                                    setQuadVisibility(depth, x, y, true);
-                                }                            
-                            }                           
+                                    visibleQuads.update(depth, x, y, true);
+                                }
+                            } 
                         }
                     }
                 }
 
                 // Hide old quads
                 var hidden = [];
-                for (var d in visibleQuads) {
+                for (var d in visibleQuads.data) {
                     if (d == depth) {
                         continue;
                     }
-                    for (var x in visibleQuads[d]) {
-                        for (var y in visibleQuads[d][x]) {
+                    for (var x in visibleQuads.data[d]) {
+                        for (var y in visibleQuads.data[d][x]) {
                             hideMarkers(quads[d][x][y]);
                             hidden.push([d, x, y]);
                         }
                     }
                 }
-                for (var x in visibleQuads[depth]) {
-                    for (var y in visibleQuads[depth][x]) {
+                for (var x in visibleQuads.data[depth]) {
+                    for (var y in visibleQuads.data[depth][x]) {
                         if (x < xRange[0] || x > xRange[1] || y < yRange[0] || y > yRange[1]) {
                             hideMarkers(quads[d][x][y]);
                             hidden.push([d, x, y]);
@@ -214,10 +275,11 @@
                     }
                 }
                 for (let quadAddress of hidden) {
-                    setQuadVisibility(quadAddress[0], quadAddress[1], quadAddress[2], false);
+                    visibleQuads.update(quadAddress[0], quadAddress[1], quadAddress[2], false);
                 }
 
                 logVisibleQuadsInfo(depth);
+                checkMetadataQuads();
             }
 
             function getQuadCount(depth) {
@@ -239,11 +301,11 @@
 
             map.fitBounds([[-1, -1], [1, 1]]);
             
-            map.on('zoomend', updateLayers);
-            map.on('moveend', updateLayers);
+            map.on('zoomend', updateMarkers);
+            map.on('moveend', updateMarkers);
             
             var request = new XMLHttpRequest();
-            request.open('GET', '/tsne.json');
+            request.open('GET', '/meta.json');
             request.onload = function() {
                 if (request.status === 200) {
                     quads = JSON.parse(request.responseText);

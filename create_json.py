@@ -130,6 +130,25 @@ def set_item_data(item, row):
     item['properties'] = [get_name_id(v) for v in properties + [names[row]]]
 
 
+DATAQUADS_PER_QUAD = 16
+
+def save_dataquads(quads, depth):
+    dataquads = {}
+    for x in quads:
+        data_x = x // DATAQUADS_PER_QUAD
+        for y in quads[x]:
+            data_y = y // DATAQUADS_PER_QUAD
+            if (data_x, data_y) not in dataquads:
+                dataquads[(data_x, data_y)] = {}
+            dataquad = dataquads[(data_x, data_y)]
+            if x not in dataquad:
+                dataquad[x] = {}
+            dataquad[x][y] = quads[x][y]
+    for data_x, data_y in dataquads:
+        json_string = json.dumps(dataquads[(data_x, data_y)])
+        with open('data/meta/{:d}_{:d}_{:d}.json'.format(depth, data_x, data_y), 'w') as file:
+            file.write(json_string)
+
 result = {}
 for depth_str in data:
     depth = int(depth_str)
@@ -139,7 +158,7 @@ for depth_str in data:
 
     quads = {}
     
-    for item in tqdm(items, desc="Depth {:d}".format(depth)):
+    for item in items:
         item['y'] *= -1
 
         row = row_by_image[item['image']]
@@ -155,7 +174,10 @@ for depth_str in data:
             quads[quad_x][quad_y] = []
         quads[quad_x][quad_y].append(item)
     
-    result[depth] = quads
+    if depth < 13:
+        result[depth] = quads
+    else:
+        save_dataquads(quads, depth)                
 
 from image_loader import ImageDataset
 dataset = ImageDataset()
@@ -165,7 +187,7 @@ max_value = np.max(codes, axis=0)
 codes -= (max_value + min_value) / 2
 codes /= np.max(codes, axis=0)
 
-final_depth = max(int(d) for d in result.keys()) + 1
+final_depth = max(int(d) for d in data.keys()) + 1
 quads = {}
 quad_count = 2**(final_depth - 9)
 
@@ -187,9 +209,9 @@ for i in range(codes.shape[0]):
         quads[quad_x][quad_y] = []
     quads[quad_x][quad_y].append(item)
 
-result[final_depth] = quads
+save_dataquads(quads, final_depth)
 
 result['names'] = strings
 json_string = json.dumps(result)
-with open('data/tsne.json', 'w') as file:
+with open('data/meta.json', 'w') as file:
     file.write(json_string)
