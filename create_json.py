@@ -177,10 +177,6 @@ for depth_str in data:
 from image_loader import ImageDataset
 dataset = ImageDataset()
 codes = np.load('data/latent_codes_embedded_moved.npy')
-min_value = np.min(codes, axis=0)
-max_value = np.max(codes, axis=0)
-codes -= (max_value + min_value) / 2
-codes /= np.max(codes, axis=0)
 
 final_depth = max(int(d) for d in data.keys()) + 1
 quads = {}

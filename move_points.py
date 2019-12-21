@@ -66,5 +66,10 @@ ax = fig.add_subplot(111, aspect='equal')
 codes = move_mutiple(codes)
 
 OUTPUT_FILENAME = 'data/latent_codes_embedded_moved.npy'
-np.save(OUTPUT_FILENAME, moved)
+min_value = np.min(codes, axis=0)
+max_value = np.max(codes, axis=0)
+codes -= (max_value + min_value) / 2
+codes *= 0.99 / np.max(codes, axis=0)
+
+np.save(OUTPUT_FILENAME, codes)
 prin("Saved to {:s}.".format(OUTPUT_FILENAME))

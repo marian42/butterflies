@@ -23,11 +23,6 @@ TILE_DEPTH = 8
 SHADOW_RADIUS = 12
 SHADOW_VALUE = 0.8
 
-min_value = np.min(codes, axis=0)
-max_value = np.max(codes, axis=0)
-codes -= (max_value + min_value) / 2
-codes /= np.max(codes, axis=0)
-
 from image_loader import ImageDataset
 dataset = ImageDataset()
 
