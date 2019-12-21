@@ -52,6 +52,30 @@
                 text-decoration: none;
             }
 
+            .leaflet-popup-content table {
+                margin: 5px 0px;
+                vertical-align: top;
+                border-collapse: collapse;
+            }
+
+            .leaflet-popup-content .key {
+                width: 100px;
+                color: #414141;
+                display: inline-block;
+            }
+
+            .leaflet-popup-content .classification:after {
+                content: '\00a0\00b7';
+            }
+
+            .leaflet-popup-content .classification:last-child:after {
+                content: '';
+            }
+
+            .leaflet-popup-content .classification {
+                display: inline-block;
+            }
+
             .butterfly {
                 border: 1px red solid;
             }
@@ -112,9 +136,45 @@
                 result = '<h1><a href="https://data.nhm.ac.uk/object/' + item.occId + '">' + properties[6] + '</a></h1>';
                 var imageUrl = 'https://www.nhm.ac.uk/services/media-store/asset/' + item.image + '/contents/preview';
                 result += '<a href="' + imageUrl + '"><img src="' + imageUrl + '"></a>';
-                for (let property of properties) {
-                    result += property + '<br>';
+                result += '<table>';
+                result += '<tr><td class="key">Classification:</td><td>';
+                result += '<span class="classification" title="Class">Insecta</span>&nbsp;';
+                result += '<span class="classification" title="Order">Lepidoptera</span>&nbsp;';
+                if (properties[0].length != 0) {
+                    result += '<span class="classification" title="Family">' + properties[0] + '</span>&nbsp;';
                 }
+                if (properties[1].length != 0) {
+                    result += '<span class="classification" title="Genus">' + properties[1] + '</span>&nbsp;';
+                }
+                if (properties[2].length != 0) {
+                    result += '<span class="classification" title="Species">' + properties[2] + '</span>&nbsp;';
+                }
+                if (properties[3].length != 0) {
+                    result += '<span class="classification" title="Subspecies">' + properties[3] + '</span>';
+                }
+                result += '</td></tr>';
+                if (properties[4].length != 0) {
+                    result += '<tr><td class="key">Sex:</td><td>' + properties[4] + '</td></tr>';                
+                }
+                var hasLatLng = item.lat !== undefined && item.lon !== undefined;
+                if (properties[5].length != 0) {
+                    result += '<tr><td class="key">Location:</td><td>';
+                    if (hasLatLng) {
+                        result += '<a href="https://www.google.com/maps/@' + item.lat + ',' + item.lon + ',15z">';
+                    }
+                    result += properties[5];
+                    if (hasLatLng) {
+                        result += '</a>'
+                    }
+                    result += '</td></tr>';                
+                }
+                if (item.time !== undefined) {
+                    result += '<tr><td class="key">Collected:</td><td>' + item.time + '</td></tr>';                
+                }
+
+                result += '</table>';
+
+                result += '<a href="https://data.nhm.ac.uk/object/' + item.occId + '">NHM Data Portal</a>';
                 return result;
             }
 
