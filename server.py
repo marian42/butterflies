@@ -11,6 +11,10 @@ META_DATA_FORMAT = 'data/meta/{:d}_{:d}_{:d}.json'
 def index():
     return send_file('server/index.html')
 
+@app.route('/favicon.png')
+def get_favicon():
+    return send_file('server/favicon.png')
+
 @app.route('/tile/<depth>/<x>/<y>.png')
 def get_tile(depth, x, y):
     try:

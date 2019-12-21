@@ -14,6 +14,7 @@
             integrity="sha512-GffPMF3RvMeYyc1LWMHtK8EbPv0iNZ8/oTtHPx9/cc2ILxQ+u905qIwdpULaqDkyBKgOaB57QTMg7ztg8Jm2Og=="
             crossorigin="">
         </script>
+        <link rel="shortcut icon" type="image/png" href="/favicon.png"/>
     </head>
 
     <body>
@@ -120,7 +121,7 @@
                 className: 'butterfly',
                 iconSize: [ICON_WIDTH, ICON_HEIGHT],
                 iconAnchor: [ICON_WIDTH / 2, ICON_HEIGHT / 2],
-                popupAnchor: [0, -ICON_HEIGHT  / 2]
+                popupAnchor: [0, -ICON_HEIGHT / 2 * 0.6]
             });
 
             function createPopup(marker) {
@@ -346,14 +347,18 @@
                 zoomControl: true,
                 minZoom: 5,
                 maxZoom: 16,
-                crs: L.CRS.Simple
+                crs: L.CRS.Simple,
+                zoomControl: false
             });
 
             L.tileLayer('tile/{z}/{x}/{y}.png', {
                 minZoom: 5,
                 maxZoom: 16,
-                bounds: [[-1, -1], [1, 1]]
+                bounds: [[-1, -1], [1, 1]],
+                attribution: '<a href="http://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a> <a href="https://data.nhm.ac.uk/">The Trustees of the Natural History Museum, London</a> | <a href=/page/imprint/>Imprint</a>'
             }).addTo(map);
+
+            L.control.zoom({position: 'topright'}).addTo(map);
 
             map.fitBounds([[-1, -1], [1, 1]]);
             

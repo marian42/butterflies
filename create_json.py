@@ -95,8 +95,6 @@ def get_name_id(value):
         strings.append(value)
     return name_ids[value]
 
-# Rights: CC BY 4.0 The Trustees of the Natural History Museum, London
-
 data = json.load(open('data/clusters.json', 'r'))
 
 file = open('data/multimedia.csv', 'r')
