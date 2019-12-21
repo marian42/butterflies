@@ -33,9 +33,6 @@ column_names = next(reader_iterator)
 times = []
 names = []
 
-# Name:
-# Class (Insecta) > Order (Lepidoptera) > Family (Papilionidae) > Genus > Species / Specific Epithet > Subspecies / Infraspecific Epithet
-
 MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
 row_by_id = {}
