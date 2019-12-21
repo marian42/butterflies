@@ -38,7 +38,7 @@ def save_example(epoch, hash, image, mask):
     result = image.clone().squeeze(0)
     result *= mask
 
-    utils.save_image(result, 'data/generated/{:s}.png'.format(hash))
+    utils.save_image(result, 'data/test/{:s}.png'.format(hash))
 
 def train():
     for epoch in count():
@@ -57,7 +57,7 @@ def train():
             error = loss.item()
             loss_history.append(error)
 
-            if epoch % 10 == 0 and epoch != 0:
+            if epoch % 100 == 0:
                 for i in range(image.shape[0]):
                     save_example(epoch, hash[i], image[i, :, :], output[i, :, :])
         print(epoch, np.mean(loss_history))
