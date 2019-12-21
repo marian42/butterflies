@@ -3,6 +3,7 @@ from tqdm import tqdm
 from collections import Counter
 import csv
 import math
+import numpy as np
 
 class DataProperty():
     def __init__(self, column, name, type=str):
@@ -117,6 +118,18 @@ for row in reader_iterator:
         row_by_image[image] = row_by_id[id]
     progress.update()
 
+def set_item_data(item, row):
+    item['id'] = columns[0].values[row]
+    item['occId'] = columns[1].values[row]
+    if columns[2].values[row] is not None and columns[3].values[row] is not None:
+        item['lat'] = columns[2].values[row]
+        item['lon'] = columns[3].values[row]
+    if times[row] is not None:
+        item['time'] = times[row]
+    properties = [c.values[row] for c in columns[4:]]
+    item['properties'] = [get_name_id(v) for v in properties + [names[row]]]
+
+
 result = {}
 for depth_str in data:
     depth = int(depth_str)
@@ -130,15 +143,8 @@ for depth_str in data:
         item['y'] *= -1
 
         row = row_by_image[item['image']]
-        item['id'] = columns[0].values[row]
-        item['occId'] = columns[1].values[row]
-        if columns[2].values[row] is not None and columns[3].values[row] is not None:
-            item['lat'] = columns[2].values[row]
-            item['lon'] = columns[3].values[row]
-        if times[row] is not None:
-            item['time'] = times[row]
-        properties = [c.values[row] for c in columns[4:]]
-        item['properties'] = [get_name_id(v) for v in properties + [names[row]]]
+        
+        set_item_data(item, row)
 
         quad_x = math.floor(item['x'] * quad_count)
         quad_y = math.floor(item['y'] * quad_count)
@@ -150,7 +156,39 @@ for depth_str in data:
         quads[quad_x][quad_y].append(item)
     
     result[depth] = quads
-        
+
+from image_loader import ImageDataset
+dataset = ImageDataset()
+codes = np.load('data/latent_codes_embedded_moved.npy')
+min_value = np.min(codes, axis=0)
+max_value = np.max(codes, axis=0)
+codes -= (max_value + min_value) / 2
+codes /= np.max(codes, axis=0)
+
+final_depth = max(int(d) for d in result.keys()) + 1
+quads = {}
+quad_count = 2**(final_depth - 9)
+
+for i in range(codes.shape[0]):
+    hash = dataset.hashes[i]
+    x = codes[i, 0]
+    y = -codes[i, 1]
+
+    item = {'x': x, 'y': y, 'image': hash}
+    row = row_by_image[hash]
+    set_item_data(item, row)
+
+    quad_x = math.floor(item['x'] * quad_count)
+    quad_y = math.floor(item['y'] * quad_count)
+
+    if quad_x not in quads:
+        quads[quad_x] = {}
+    if quad_y not in quads[quad_x]:
+        quads[quad_x][quad_y] = []
+    quads[quad_x][quad_y].append(item)
+
+result[final_depth] = quads
+
 result['names'] = strings
 json_string = json.dumps(result)
 with open('data/tsne.json', 'w') as file:
