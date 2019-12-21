@@ -11,7 +11,7 @@ HEIGHT = 768 # 128 * 6
 def load_image(file_name, is_bw=False):
     image = io.imread(file_name)
 
-    if image.shape[0] > image.shape[1]:
+    if image.shape[0] == 2160 and image.shape[1] == 1440:
         image = np.rot90(image)
 
     while image.shape[0] > HEIGHT or image.shape[1] > WIDTH:
