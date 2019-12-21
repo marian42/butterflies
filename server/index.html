@@ -269,8 +269,8 @@
                 for (var x in visibleQuads.data[depth]) {
                     for (var y in visibleQuads.data[depth][x]) {
                         if (x < xRange[0] || x > xRange[1] || y < yRange[0] || y > yRange[1]) {
-                            hideMarkers(quads[d][x][y]);
-                            hidden.push([d, x, y]);
+                            hideMarkers(quads[depth][x][y]);
+                            hidden.push([depth, x, y]);
                         }
                     }
                 }
