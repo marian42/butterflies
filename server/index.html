@@ -14,7 +14,7 @@
             integrity="sha512-GffPMF3RvMeYyc1LWMHtK8EbPv0iNZ8/oTtHPx9/cc2ILxQ+u905qIwdpULaqDkyBKgOaB57QTMg7ztg8Jm2Og=="
             crossorigin="">
         </script>
-        <link rel="shortcut icon" type="image/png" href="/favicon.png"/>
+        <link rel="shortcut icon" type="image/png" href="favicon.png"/>
     </head>
 
     <body>
@@ -215,7 +215,7 @@
             function fetchMetadataQuad(depth, x, y) {
                 dataQuadsRequested.update(depth, x, y, true);
                 var request = new XMLHttpRequest();
-                request.open('GET', '/meta/' + depth + '_' + x + '_' + y + '.json');
+                request.open('GET', 'meta/' + depth + '_' + x + '_' + y + '.json');
                 request.onload = function() {
                     if (request.status === 200) {
                         if(!(depth in quads)) {
@@ -366,7 +366,7 @@
             map.on('moveend', updateMarkers);
             
             var request = new XMLHttpRequest();
-            request.open('GET', '/meta.json');
+            request.open('GET', 'meta.json');
             request.onload = function() {
                 if (request.status === 200) {
                     quads = JSON.parse(request.responseText);
