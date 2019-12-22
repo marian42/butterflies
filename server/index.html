@@ -211,6 +211,36 @@
                 console.log("Showing " + totalQuads + " quads with " + totalItems + " items.");
             }
 
+            function writeMapLocationToUrl() {
+                if (windowStateLocked) {
+                    windowStateLocked = false;
+                    lastUrlHistoryUpdate = Date.now();
+                    return;
+                }
+                if (Date.now() - lastUrlHistoryUpdate < 500) {
+                    return;
+                }
+                var lat = map.getCenter().lat;
+                var lng = map.getCenter().lng;
+                var zoom = map.getZoom();
+
+                window.history.pushState({lat: lat, lng: lng, zoom: zoom}, "Butterflies", "?" + lat.toFixed(5) + "," + lng.toFixed(5) + "," + zoom);
+                lastUrlHistoryUpdate = Date.now();
+            }
+
+            function readMapLocationFromUrl() {
+                var parameters = document.location.href.split('?')[1];
+                if (parameters === undefined) {
+                    return false;
+                }
+                var values = parameters.split(',');
+                if (values.length != 3) {
+                    return false;
+                }
+                map.setView(L.latLng(values[0], values[1]), values[2]);
+                return true;
+            }
+
             function fetchMetadataQuad(depth, x, y) {
                 dataQuadsRequested.update(depth, x, y, true);
                 var request = new XMLHttpRequest();
@@ -336,6 +366,7 @@
 
                 logVisibleQuadsInfo(depth);
                 checkMetadataQuads();
+                writeMapLocationToUrl();
             }
 
             function getQuadCount(depth) {
@@ -359,7 +390,19 @@
 
             L.control.zoom({position: 'topright'}).addTo(map);
 
-            map.fitBounds([[-1, -1], [1, 1]]);
+            var windowStateLocked = false;
+            var lastUrlHistoryUpdate = Date.now();
+
+            window.onpopstate = function(event){
+                if (event.state){
+                    windowStateLocked = true;
+                    map.setView(L.latLng(event.state.lat, event.state.lng), event.state.zoom, {animate: true});
+                }
+            };
+
+            if (!readMapLocationFromUrl()) {
+                map.fitBounds([[-1, -1], [1, 1]]);
+            }
             
             map.on('zoomend', updateMarkers);
             map.on('moveend', updateMarkers);
@@ -372,6 +415,7 @@
                     
                     names = quads.names;
                     delete quads['names'];
+                    updateMarkers();
                 }
             };
             request.send();
