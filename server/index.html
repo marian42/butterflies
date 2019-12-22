@@ -129,7 +129,7 @@
                 for (let index of item.properties) {
                     properties.push(names[index]);
                 }
-                result = '<h1><a href="https://data.nhm.ac.uk/object/' + item.occId + '">' + properties[6] + '</a></h1>';
+                var result = '<h1><a href="https://data.nhm.ac.uk/object/' + item.occId + '">' + properties[6] + '</a></h1>';
                 var imageUrl = 'https://www.nhm.ac.uk/services/media-store/asset/' + item.image + '/contents/preview';
                 result += '<a href="' + imageUrl + '"><img src="' + imageUrl + '"></a>';
                 result += '<table>';
@@ -176,7 +176,7 @@
 
             function createMarkers(items) {
                 for (let item of items) {
-                    latLng = [item.y, item.x];
+                    var latLng = [item.y, item.x];
                     var marker = L.marker(latLng, {
                         icon: icon,
                         alt: names[item.properties[6]]
@@ -250,7 +250,7 @@
                         if(!(depth in quads)) {
                             quads[depth] = {};
                         }
-                        new_quads = JSON.parse(request.responseText);
+                        var new_quads = JSON.parse(request.responseText);
                         for (var x in new_quads) {
                             if(!(x in quads[depth])) {
                                 quads[depth][x] = {}
@@ -311,7 +311,7 @@
                 
                 var quadsCurrentDepth = quads[depth];
                 var quadCount = getQuadCount(depth);
-                bounds = padBounds(map.getBounds(), ICON_WIDTH / 2, ICON_HEIGHT / 2);
+                var bounds = padBounds(map.getBounds(), ICON_WIDTH / 2, ICON_HEIGHT / 2);
 
                 var xRange = [
                     Math.floor(bounds.getWest() * quadCount),
