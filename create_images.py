@@ -13,10 +13,6 @@ from torch.utils.data import DataLoader, Dataset
 
 from classifier import Classifier
 
-OUTPUT_RESOLUTION = None
-MARGIN = 0.1
-ALPHA = False
-
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 CLASSIFIER_FILENAME = 'trained_models/classifier.to'
 
@@ -38,10 +34,7 @@ class ImageDataset(Dataset):
     def __getitem__(self, index):
         hash = self.hashes[index]
         image_file_name = 'data/raw/{:s}.jpg'.format(hash)
-        result_file_name = 'data/images' \
-            + ('' if OUTPUT_RESOLUTION is None else '_{:d}'.format(OUTPUT_RESOLUTION)) \
-            + ('' if not ALPHA else '_alpha') \
-            + '/{:s}.{:s}'.format(hash, 'png' if ALPHA else 'jpg')
+        result_file_name = 'data/images_alpha/{:s}.png'.format(hash)
 
         if os.path.exists(result_file_name):
             return SKIP_ITEM
@@ -69,8 +62,5 @@ for item in tqdm(data_loader):
     if image is None or len(image.shape) != 3 or image.shape[1] < 10 or image.shape[2] < 10:
         print("Found nothing.")
         continue
-    
-    if OUTPUT_RESOLUTION is not None:
-        image = (F.adaptive_avg_pool2d(image, (OUTPUT_RESOLUTION, OUTPUT_RESOLUTION))).data
     
     utils.save_image(image, result_file_name[0])
