@@ -15,7 +15,6 @@ AUTOENCODER_FILENAME = 'trained_models/autoencoder.to'
 
 from image_loader import ImageDataset
 dataset = ImageDataset(return_hashes=True)
-BATCH_SIZE = 32
 
 data_loader = DataLoader(dataset, batch_size=1, shuffle=True, num_workers=4)
 
@@ -28,7 +27,7 @@ with torch.no_grad():
         image, hash = sample
         hash = hash[0]
 
-        output, _, _ = autoencoder(image.to(device).unsqueeze(0))
+        output = autoencoder.decode(autoencoder.encode(image.to(device).unsqueeze(0)))
 
         result = torch.zeros((3, 128, 256))
         result[:, :, :128] = image.cpu()

@@ -21,113 +21,106 @@ class PrintShape(nn.Module):
 
 LATENT_CODE_SIZE = 128
 
-amcm = 16
+amcm = 8
+
+class ResidualBlock(nn.Module):
+    def __init__(self, channels):
+        super(ResidualBlock, self).__init__()
+
+        self.layers = nn.Sequential(
+            nn.Conv2d(in_channels = channels, out_channels = channels, kernel_size = 3, padding=1),
+            nn.BatchNorm2d(channels),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(in_channels = channels, out_channels = channels, kernel_size = 3, padding=1),
+            nn.BatchNorm2d(channels)
+        )
+    
+    def forward(self, x):
+        return nn.functional.relu(self.layers(x) + x)
+
+class EncoderBlock(nn.Module):
+    def __init__(self, in_channels, out_channels=None, bottleneck=False):
+        super(EncoderBlock, self).__init__()
+
+        if out_channels is None:
+            out_channels = in_channels * 2
+        
+        self.r1 = ResidualBlock(in_channels)
+        self.r2 = ResidualBlock(in_channels)
+
+        self.layers = nn.Sequential(
+            nn.Conv2d(in_channels = in_channels, out_channels = out_channels, kernel_size = 4, stride = 1 if bottleneck else 2, padding = 0 if bottleneck else 1),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(inplace=True),
+        )
+    
+    def forward(self, x):
+        x = self.r1(x)
+        x = self.r2(x)
+        x = self.layers(x)
+        return x
+
+class DecoderBlock(nn.Module):
+    def __init__(self, in_channels, out_channels=None, bottleneck=False):
+        super(DecoderBlock, self).__init__()
+
+        if out_channels is None:
+            out_channels = in_channels // 2
+
+        self.layers = nn.Sequential(
+            nn.ConvTranspose2d(in_channels = in_channels, out_channels = out_channels, kernel_size = 4, stride = 1 if bottleneck else 2, padding = 0 if bottleneck else 1),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(inplace=True),
+        )
+
+        self.r1 = ResidualBlock(out_channels)
+        self.r2 = ResidualBlock(out_channels)
+    
+    def forward(self, x):
+        x = self.layers(x)
+        x = self.r1(x)
+        x = self.r2(x)
+        return x
 
 class Autoencoder(nn.Module):
     def __init__(self):
         super(Autoencoder, self).__init__()
 
         self.encoder = nn.Sequential(
-            nn.Conv2d(in_channels = 3, out_channels = 1 * amcm, kernel_size = 4, stride = 2, padding = 1), # 128 -> 64
+            nn.Conv2d(in_channels = 3, out_channels = 1 * amcm, kernel_size = 3, padding=1),
             nn.BatchNorm2d(1 * amcm),
             nn.ReLU(inplace=True),
 
-            nn.Conv2d(in_channels = 1 * amcm, out_channels = 1 * amcm, kernel_size = 3, padding=1),
-            nn.BatchNorm2d(1 * amcm),
-            nn.ReLU(inplace=True),
-
-            nn.Conv2d(in_channels = 1 * amcm, out_channels = 2 * amcm, kernel_size = 4, stride = 2, padding = 1), # 64 -> 32
-            nn.BatchNorm2d(2 * amcm),
-            nn.ReLU(inplace=True),
-
-            nn.Conv2d(in_channels = 2 * amcm, out_channels = 2 * amcm, kernel_size = 3, padding=1),
-            nn.BatchNorm2d(2 * amcm),
-            nn.ReLU(inplace=True),
-
-            nn.Conv2d(in_channels = 2 * amcm, out_channels = 4 * amcm, kernel_size = 4, stride = 2, padding = 1), # 32 -> 16
-            nn.BatchNorm2d(4 * amcm),
-            nn.ReLU(inplace=True),
-
-            nn.Conv2d(in_channels = 4 * amcm, out_channels = 4 * amcm, kernel_size = 3, padding=1),
-            nn.BatchNorm2d(4 * amcm),
-            nn.ReLU(inplace=True),
-
-            nn.Conv2d(in_channels = 4 * amcm, out_channels = 8 * amcm, kernel_size = 4, stride = 2, padding = 1), # 16 -> 8
-            nn.BatchNorm2d(8 * amcm),
-            nn.ReLU(inplace=True),
-
-            nn.Conv2d(in_channels = 8 * amcm, out_channels = 8 * amcm, kernel_size = 3, padding=1),
-            nn.BatchNorm2d(8 * amcm),
-            nn.ReLU(inplace=True),
-
-            nn.Conv2d(in_channels = 8 * amcm, out_channels = 16 * amcm, kernel_size = 4, stride = 2, padding = 1), # 8 -> 4
-            nn.BatchNorm2d(16 * amcm),
-            nn.ReLU(inplace=True),
-
-            nn.Conv2d(in_channels = 16 * amcm, out_channels = 16 * amcm, kernel_size = 3, padding=1),
-            nn.BatchNorm2d(16 * amcm),
-            nn.ReLU(inplace=True),
-
-            nn.Conv2d(in_channels = 16 * amcm, out_channels = LATENT_CODE_SIZE, kernel_size = 4, stride = 1), # 4 -> 1
-            nn.BatchNorm2d(LATENT_CODE_SIZE),
-            nn.ReLU(inplace=True),
+            EncoderBlock(1 * amcm, 1 * amcm), # 128 -> 64
+            EncoderBlock(1 * amcm), # 64 -> 32
+            EncoderBlock(2 * amcm), # 32 -> 16
+            EncoderBlock(4 * amcm), # 16 -> 8
+            EncoderBlock(8 * amcm), # 8 -> 4
+            EncoderBlock(16 * amcm, LATENT_CODE_SIZE, bottleneck=True), # 4 -> 1
 
             Lambda(lambda x: x.reshape(x.shape[0], -1)),
 
+            nn.Linear(LATENT_CODE_SIZE, LATENT_CODE_SIZE),
             nn.BatchNorm1d(LATENT_CODE_SIZE),
             nn.ReLU(inplace=True),
+            nn.Linear(LATENT_CODE_SIZE, LATENT_CODE_SIZE),
         )
         
-        self.encode_mean = nn.Linear(in_features=LATENT_CODE_SIZE, out_features=LATENT_CODE_SIZE)
-        self.encode_log_variance = nn.Linear(in_features=LATENT_CODE_SIZE, out_features=LATENT_CODE_SIZE)
-        
         self.decoder = nn.Sequential(
-            nn.Linear(in_features = LATENT_CODE_SIZE, out_features=LATENT_CODE_SIZE * 2),
-            nn.BatchNorm1d(LATENT_CODE_SIZE * 2),
+            nn.Linear(LATENT_CODE_SIZE, LATENT_CODE_SIZE),
+            nn.BatchNorm1d(LATENT_CODE_SIZE),
             nn.ReLU(inplace=True),
 
-            Lambda(lambda x: x.reshape(-1, LATENT_CODE_SIZE * 2, 1, 1)),
-            nn.ConvTranspose2d(in_channels = LATENT_CODE_SIZE * 2, out_channels = 16 * amcm, kernel_size = 4, stride = 1), # 1 -> 4
-            nn.BatchNorm2d(16 * amcm),
-            nn.ReLU(inplace=True),
+            Lambda(lambda x: x.reshape(-1, LATENT_CODE_SIZE, 1, 1)),
 
-            nn.Conv2d(in_channels = 16 * amcm, out_channels = 16 * amcm, kernel_size = 3, padding=1),
-            nn.BatchNorm2d(16 * amcm),
-            nn.ReLU(inplace=True),
+            DecoderBlock(LATENT_CODE_SIZE, 16 * amcm, bottleneck=True), # 1 -> 4
+            DecoderBlock(16 * amcm), # 4 -> 8
+            DecoderBlock(8 * amcm), # 8 -> 16
+            DecoderBlock(4 * amcm), # 16 -> 32
+            DecoderBlock(2 * amcm), # 32 -> 64
+            DecoderBlock(1 * amcm, 1 * amcm), # 32 -> 128
 
-            nn.ConvTranspose2d(in_channels = 16 * amcm, out_channels = 8 * amcm, kernel_size = 4, stride = 2, padding = 1), # 4 -> 8
-            nn.BatchNorm2d(8 * amcm),
-            nn.ReLU(inplace=True),
-
-            nn.Conv2d(in_channels = 8 * amcm, out_channels = 8 * amcm, kernel_size = 3, padding=1),
-            nn.BatchNorm2d(8 * amcm),
-            nn.ReLU(inplace=True),
-
-            nn.ConvTranspose2d(in_channels = 8 * amcm, out_channels = 4 * amcm, kernel_size = 4, stride = 2, padding = 1), # 8 -> 16
-            nn.BatchNorm2d(4 * amcm),
-            nn.ReLU(inplace=True),
-
-            nn.Conv2d(in_channels = 4 * amcm, out_channels = 4 * amcm, kernel_size = 3, padding=1),
-            nn.BatchNorm2d(4 * amcm),
-            nn.ReLU(inplace=True),
-
-            nn.ConvTranspose2d(in_channels = 4 * amcm, out_channels = 2 * amcm, kernel_size = 4, stride = 2, padding = 1), # 16 -> 32
-            nn.BatchNorm2d(2 * amcm),
-            nn.ReLU(inplace=True),
-
-            nn.Conv2d(in_channels = 2 * amcm, out_channels = 2 * amcm, kernel_size = 3, padding=1),
-            nn.BatchNorm2d(2 * amcm),
-            nn.ReLU(inplace=True),
-            
-            nn.ConvTranspose2d(in_channels = 2 * amcm, out_channels = 1 * amcm, kernel_size = 4, stride = 2, padding = 1), # 32 -> 64
-            nn.BatchNorm2d(1 * amcm),
-            nn.ReLU(inplace=True),
-
-            nn.Conv2d(in_channels = 1 * amcm, out_channels = 1 * amcm, kernel_size = 3, padding=1),
-            nn.BatchNorm2d(1 * amcm),
-            nn.ReLU(inplace=True),
-
-            nn.ConvTranspose2d(in_channels = 1 * amcm, out_channels = 3, kernel_size = 4, stride = 2, padding = 1), # 64 -> 128
+            nn.Conv2d(in_channels = 1 * amcm, out_channels = 3, kernel_size = 3, padding=1)
         )
 
         self.cuda()
@@ -135,8 +128,8 @@ class Autoencoder(nn.Module):
     def encode(self, x, return_mean_and_log_variance = False):
         x = x.reshape((-1, 3, 128, 128))
         x = self.encoder.forward(x)
+        return x
 
-        mean = self.encode_mean(x).squeeze()
         
         if self.training or return_mean_and_log_variance:
             log_variance = self.encode_log_variance(x).squeeze()
