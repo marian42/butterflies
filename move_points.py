@@ -41,7 +41,7 @@ def create_plot(points, index):
     plt.xlim((-r, r))
     plt.ylim((-r, r))
     plt.scatter(points[:, 0], points[:, 1], marker='o', s=1, color='r', zorder=100)
-    plt.savefig('data/plots/{:05d}.png'.format(i), bbox_inches='tight')
+    plt.savefig('data/plots/{:05d}.png'.format(index), bbox_inches='tight')
     plt.close(fig)
 
 def move_mutiple(points, radius=RADIUS, steps=10000):
@@ -72,4 +72,4 @@ codes -= (max_value + min_value) / 2
 codes *= 0.99 / np.max(codes, axis=0)
 
 np.save(OUTPUT_FILENAME, codes)
-prin("Saved to {:s}.".format(OUTPUT_FILENAME))
+print("Saved to {:s}.".format(OUTPUT_FILENAME))
