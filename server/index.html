@@ -130,8 +130,8 @@
                     properties.push(names[index]);
                 }
                 var result = '<h1><a href="https://data.nhm.ac.uk/object/' + item.occId + '">' + properties[6] + '</a></h1>';
-                var imageUrl = 'https://www.nhm.ac.uk/services/media-store/asset/' + item.image + '/contents/preview';
-                result += '<a href="' + imageUrl + '"><img src="' + imageUrl + '"></a>';
+                var imageUrl = 'https://www.nhm.ac.uk/services/media-store/asset/' + item.image + '/contents/';
+                result += '<a href="' + imageUrl + 'preview"><img src="' + imageUrl + 'thumbnail"></a>';
                 result += '<table>';
                 result += '<tr><td class="key">Classification:</td><td>';
                 result += '<span class="classification" title="Class">Insecta</span>&nbsp;';
