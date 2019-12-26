@@ -15,7 +15,7 @@ def index():
 def get_favicon():
     return send_file('server/favicon.png')
 
-@app.route('/tile/<depth>/<x>/<y>.png')
+@app.route('/tile/<depth>/<x>/<y>.jpg')
 def get_tile(depth, x, y):
     try:
         depth, x, y = int(depth), int(x), int(y)
