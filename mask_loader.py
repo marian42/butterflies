@@ -15,7 +15,7 @@ def load_image(file_name, is_bw=False):
         image = np.rot90(image)
 
     while image.shape[0] > HEIGHT or image.shape[1] > WIDTH:
-        image = transform.resize(image, (image.shape[0] // 2, image.shape[1] // 2), preserve_range=True)    
+        image = transform.resize(image, (image.shape[0] // 2, image.shape[1] // 2), preserve_range=True)
 
     if is_bw:
         result = np.zeros((HEIGHT, WIDTH), dtype=np.float32)
