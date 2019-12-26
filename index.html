@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>Butterflies</title>
+        <meta name="description" content="An interactive visualization of 150.000 butterflies from the Natural History Museum in London, arranged by visual similarity using t-SNE and deep neural networks.">
+        <link rel="shortcut icon" type="image/png" href="favicon.png"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.5.1/dist/leaflet.css"
+            integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ=="
+            crossorigin=""/>
+        <script src="https://unpkg.com/leaflet@1.5.1/dist/leaflet.js"
+            integrity="sha512-GffPMF3RvMeYyc1LWMHtK8EbPv0iNZ8/oTtHPx9/cc2ILxQ+u905qIwdpULaqDkyBKgOaB57QTMg7ztg8Jm2Og=="
+            crossorigin="">
+        </script>
+    </head>
+
+    <body>
+        <div id="map"></div>
+        
+        <style>
+            html, body {
+                margin: 0;
+                padding: 0;
+                width: 100%;
+                height: 100%;
+                font-family: sans-serif;
+            }
+            #map {
+                width: 100%;
+                height: 100%;
+                background-color: #FFFFFF;
+            }
+
+            .leaflet-popup-content-wrapper {
+                border-radius: 0;
+            }
+
+            .leaflet-popup-close-button {
+                padding: 10px;
+                font-size: 24px;
+            }
+
+            .leaflet-popup-content {
+                width: 450px;
+            }
+
+            .leaflet-popup-content img {
+                max-width: 450px;
+                min-height: 300px;
+            }
+
+            .leaflet-popup-content h1 a {
+                color: #000000;
+                text-decoration: none;
+            }
+
+            .leaflet-popup-content table {
+                margin: 5px 0px;
+                vertical-align: top;
+                border-collapse: collapse;
+            }
+
+            .leaflet-popup-content .key {
+                width: 100px;
+                color: #414141;
+                display: inline-block;
+            }
+
+            .leaflet-popup-content .classification:after {
+                content: '\00a0\00b7';
+            }
+
+            .leaflet-popup-content .classification:last-child:after {
+                content: '';
+            }
+
+            .leaflet-popup-content .classification {
+                display: inline-block;
+            }
+        </style>
+        <script>
+            class TripleSet {
+                constructor() {
+                    this.data = {};
+                }
+
+                contains(a, b, c) {
+                    if (!(a in this.data)) {
+                        return false;
+                    }
+                    if (!(b in this.data[a])) {
+                        return false;
+                    }
+                    return c in this.data[a][b];
+                }
+
+                update(a, b, c, isInSet) {
+                    if (!(a in this.data)) {
+                        this.data[a] = {};
+                    }
+                    if (!(b in this.data[a])) {
+                        this.data[a][b] = {};
+                    }
+                    if (isInSet) {
+                        this.data[a][b][c] = true;
+                    } else {
+                        delete this.data[a][b][c];
+                    }
+                }
+            }
+
+            var names = [];
+
+            var quads = {};
+            var visibleQuads = new TripleSet();
+            var dataQuadsRequested = new TripleSet();
+
+            const ICON_WIDTH = 128;
+            const ICON_HEIGHT = 96;
+
+            const icon = L.divIcon({
+                className: 'butterfly',
+                iconSize: [ICON_WIDTH, ICON_HEIGHT],
+                iconAnchor: [ICON_WIDTH / 2, ICON_HEIGHT / 2],
+                popupAnchor: [0, -ICON_HEIGHT / 2 * 0.6]
+            });
+
+            function createPopup(marker) {
+                var item = marker.item;
+                var properties = [];
+                for (let index of item.properties) {
+                    properties.push(names[index]);
+                }
+                var result = '<h1><a href="https://data.nhm.ac.uk/object/' + item.occId + '">' + properties[6] + '</a></h1>';
+                var imageUrl = 'https://www.nhm.ac.uk/services/media-store/asset/' + item.image + '/contents/';
+                result += '<a href="' + imageUrl + 'preview"><img src="' + imageUrl + 'thumbnail"></a>';
+                result += '<table>';
+                result += '<tr><td class="key">Classification:</td><td>';
+                result += '<span class="classification" title="Class">Insecta</span>&nbsp;';
+                result += '<span class="classification" title="Order">Lepidoptera</span>&nbsp;';
+                if (properties[0].length != 0) {
+                    result += '<span class="classification" title="Family">' + properties[0] + '</span>&nbsp;';
+                }
+                if (properties[1].length != 0) {
+                    result += '<span class="classification" title="Genus">' + properties[1] + '</span>&nbsp;';
+                }
+                if (properties[2].length != 0) {
+                    result += '<span class="classification" title="Species">' + properties[2] + '</span>&nbsp;';
+                }
+                if (properties[3].length != 0) {
+                    result += '<span class="classification" title="Subspecies">' + properties[3] + '</span>';
+                }
+                result += '</td></tr>';
+                if (properties[4].length != 0) {
+                    result += '<tr><td class="key">Sex:</td><td>' + properties[4] + '</td></tr>';                
+                }
+                var hasLatLng = item.lat !== undefined && item.lon !== undefined;
+                if (properties[5].length != 0) {
+                    result += '<tr><td class="key">Location:</td><td>';
+                    if (hasLatLng) {
+                        result += '<a href="https://www.google.com/maps/@' + item.lat + ',' + item.lon + ',15z">';
+                    }
+                    result += properties[5];
+                    if (hasLatLng) {
+                        result += '</a>'
+                    }
+                    result += '</td></tr>';                
+                }
+                if (item.time !== undefined) {
+                    result += '<tr><td class="key">Collected:</td><td>' + item.time + '</td></tr>';                
+                }
+
+                result += '</table>';
+
+                result += '<a href="https://data.nhm.ac.uk/object/' + item.occId + '">NHM Data Portal</a>';
+                return result;
+            }
+
+            function createMarkers(items) {
+                for (let item of items) {
+                    var latLng = [item.y, item.x];
+                    var marker = L.marker(latLng, {
+                        icon: icon,
+                        alt: names[item.properties[6]]
+                    });
+                    marker.item = item;
+                    item.marker = marker;
+                    marker.bindPopup(createPopup, {maxWidth: 450});
+                    marker.addTo(map);
+                }
+            }
+
+            function hideMarkers(items) {
+                if (items === undefined) {
+                    return;
+                }
+                for (let item of items) {
+                    if (item.marker != undefined) {
+                        item.marker.remove();
+                    }
+                }
+            }
+
+            function logVisibleQuadsInfo(depth) {
+                var totalQuads = 0;
+                var totalItems = 0;
+                for (var x in visibleQuads.data[depth]) {
+                    for (var y in visibleQuads.data[depth][x]) {
+                        totalQuads++;
+                        totalItems += quads[depth][x][y].length;
+                    }
+                }
+                console.log("Showing " + totalQuads + " quads with " + totalItems + " items.");
+            }
+
+            function writeMapLocationToUrl() {
+                if (windowStateLocked) {
+                    windowStateLocked = false;
+                    lastUrlHistoryUpdate = Date.now();
+                    return;
+                }
+                if (Date.now() - lastUrlHistoryUpdate < 500) {
+                    return;
+                }
+                var lat = map.getCenter().lat;
+                var lng = map.getCenter().lng;
+                var zoom = map.getZoom();
+
+                window.history.pushState({lat: lat, lng: lng, zoom: zoom}, "Butterflies", "?" + lat.toFixed(5) + "," + lng.toFixed(5) + "," + zoom);
+                lastUrlHistoryUpdate = Date.now();
+            }
+
+            function readMapLocationFromUrl() {
+                var parameters = document.location.href.split('?')[1];
+                if (parameters === undefined) {
+                    return false;
+                }
+                var values = parameters.split(',');
+                if (values.length != 3) {
+                    return false;
+                }
+                map.setView(L.latLng(values[0], values[1]), values[2]);
+                return true;
+            }
+
+            function fetchMetadataQuad(depth, x, y) {
+                dataQuadsRequested.update(depth, x, y, true);
+                var request = new XMLHttpRequest();
+                request.open('GET', 'meta/' + depth + '_' + x + '_' + y + '.json');
+                request.onload = function() {
+                    if (request.status === 200) {
+                        if(!(depth in quads)) {
+                            quads[depth] = {};
+                        }
+                        var new_quads = JSON.parse(request.responseText);
+                        for (var x in new_quads) {
+                            if(!(x in quads[depth])) {
+                                quads[depth][x] = {}
+                            }
+                            for (var y in new_quads[x]) {
+                                quads[depth][x][y] = new_quads[x][y]
+                            }
+                        }
+                        updateMarkers();
+                    } else {
+                        dataQuadsRequested.update(depth, x, y, false);
+                    }
+                };
+                request.send();
+            }
+
+            function checkMetadataQuads() {
+                var depth = map.getZoom();
+
+                if (depth < 13) {
+                    return;
+                }
+
+                var quadCount = getQuadCount(depth) / 16;
+                var bounds = padBounds(map.getBounds(), ICON_WIDTH / 2, ICON_HEIGHT / 2);
+
+                var xRange = [
+                    Math.floor(bounds.getWest() * quadCount),
+                    Math.floor(bounds.getEast() * quadCount)
+                ];
+                var yRange = [
+                    Math.floor(bounds.getSouth() * quadCount),
+                    Math.floor(bounds.getNorth() * quadCount)
+                ];
+
+                for (var x = xRange[0]; x <= xRange[1]; x++) {
+                    for (var y = yRange[0]; y <= yRange[1]; y++) {
+                        if (!dataQuadsRequested.contains(depth, x, y)) {
+                            fetchMetadataQuad(depth, x, y);
+                        }
+                    }
+                }
+            }
+
+            function padBounds(bounds, paddingX, paddingY) {
+                var padding = L.point(paddingX, paddingY);
+
+                var corner1 = map.project(bounds.getNorthWest());
+                corner1 = corner1.subtract(padding);
+                var corner2 = map.project(bounds.getSouthEast());
+                corner2 = corner2.add(padding);
+
+                return L.latLngBounds(map.unproject(corner1), map.unproject(corner2));
+            }
+
+            function updateMarkers() {
+                var depth = map.getZoom();
+                
+                var quadsCurrentDepth = quads[depth];
+                var quadCount = getQuadCount(depth);
+                var bounds = padBounds(map.getBounds(), ICON_WIDTH / 2, ICON_HEIGHT / 2);
+
+                var xRange = [
+                    Math.floor(bounds.getWest() * quadCount),
+                    Math.floor(bounds.getEast() * quadCount)
+                ];
+                var yRange = [
+                    Math.floor(bounds.getSouth() * quadCount),
+                    Math.floor(bounds.getNorth() * quadCount)
+                ];
+
+                // Show new quads
+                if (depth in quads && depth >= 10) {
+                    for (var x = xRange[0]; x <= xRange[1]; x++) {
+                        if (!(x in quadsCurrentDepth)) {
+                            continue;
+                        }
+                        for (var y = yRange[0]; y <= yRange[1]; y++) {
+                            if (y in quadsCurrentDepth[x]) {
+                                if (!visibleQuads.contains(depth, x, y)) {
+                                    createMarkers(quadsCurrentDepth[x][y]);
+                                    visibleQuads.update(depth, x, y, true);
+                                }
+                            } 
+                        }
+                    }
+                }
+
+                // Hide old quads
+                var hidden = [];
+                for (var d in visibleQuads.data) {
+                    if (d == depth) {
+                        continue;
+                    }
+                    for (var x in visibleQuads.data[d]) {
+                        for (var y in visibleQuads.data[d][x]) {
+                            hideMarkers(quads[d][x][y]);
+                            hidden.push([d, x, y]);
+                        }
+                    }
+                }
+                for (var x in visibleQuads.data[depth]) {
+                    for (var y in visibleQuads.data[depth][x]) {
+                        if (x < xRange[0] || x > xRange[1] || y < yRange[0] || y > yRange[1]) {
+                            hideMarkers(quads[depth][x][y]);
+                            hidden.push([depth, x, y]);
+                        }
+                    }
+                }
+                for (let quadAddress of hidden) {
+                    visibleQuads.update(quadAddress[0], quadAddress[1], quadAddress[2], false);
+                }
+
+                logVisibleQuadsInfo(depth);
+                checkMetadataQuads();
+                writeMapLocationToUrl();
+            }
+
+            function getQuadCount(depth) {
+                return Math.pow(2, depth - 9);
+            }
+
+            var map = L.map('map', {
+                zoomControl: true,
+                minZoom: 5,
+                maxZoom: 16,
+                crs: L.CRS.Simple,
+                zoomControl: false
+            });
+
+            L.tileLayer('tile/{z}/{x}/{y}.jpg', {
+                minZoom: 5,
+                maxZoom: 16,
+                bounds: [[-1, -1], [1, 1]],
+                attribution: '<a href="http://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a> <a href="https://data.nhm.ac.uk/">The Trustees of the Natural History Museum, London</a> | <a href=/page/imprint/>Imprint</a>'
+            }).addTo(map);
+
+            L.control.zoom({position: 'topright'}).addTo(map);
+
+            var windowStateLocked = false;
+            var lastUrlHistoryUpdate = Date.now();
+
+            window.onpopstate = function(event){
+                if (event.state){
+                    windowStateLocked = true;
+                    map.setView(L.latLng(event.state.lat, event.state.lng), event.state.zoom, {animate: true});
+                }
+            };
+
+            if (!readMapLocationFromUrl()) {
+                map.fitBounds([[-1, -1], [1, 1]]);
+            }
+            
+            map.on('zoomend', updateMarkers);
+            map.on('moveend', updateMarkers);
+            
+            var request = new XMLHttpRequest();
+            request.open('GET', 'meta.json');
+            request.onload = function() {
+                if (request.status === 200) {
+                    quads = JSON.parse(request.responseText);
+                    
+                    names = quads.names;
+                    delete quads['names'];
+                    updateMarkers();
+                }
+            };
+            request.send();
+        </script>
+    </body>
+</html>
