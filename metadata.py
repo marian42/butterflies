@@ -1,6 +1,14 @@
 import csv
 from tqdm import tqdm
 
+MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+
+def try_make_int(string):
+    try:
+        return int(string)
+    except:
+        return None
+
 class Butterfly():
     def __init__(self, row):
         self.family = row[0]
@@ -28,6 +36,30 @@ class Butterfly():
     def image_url(self):
         return 'https://www.nhm.ac.uk/services/media-store/asset/{:s}/contents/preview'.format(self.image_id)
 
+    @property
+    def pretty_time(self):
+        day = try_make_int(self.day)
+        month = try_make_int(self.month)
+        year = try_make_int(self.year)
+
+        try:
+            if day is not None and month is not None and year is not None:
+                return '{:s} {:d}, {:d}'.format(MONTHS[month], day, year)
+            elif month is not None and year is not None:
+                return '{:s} {:d}'.format(MONTHS[month - 1], year)
+            elif year is not None:
+                return str(year)
+            else:
+                return None
+        except:
+            return None
+
+    @property
+    def pretty_name(self):
+        if self.name.endswith(self.name_author):
+            return self.name[:-len(self.name_author)].strip()
+        else:
+            return self.name
 
 def load():
     file = open('data/metadata.csv', 'r')
