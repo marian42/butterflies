@@ -31,22 +31,17 @@ class MaskDataset(Dataset):
     def __init__(self):
         file_names = glob.glob(os.path.join('data/masks/', '**.png'), recursive=True)
         self.hashes = [f.split('/')[-1][:-4] for f in file_names]
-        self.cache = dict()
         
     def __len__(self):
         return len(self.hashes)
 
     def __getitem__(self, index):
-        if index in self.cache:
-            return self.cache[index]
-
         hash = self.hashes[index]
         mask_file_name = 'data/masks/{:s}.png'.format(hash)
         image_file_name = 'data/raw/{:s}.jpg'.format(hash)
 
         mask = load_image(mask_file_name, is_bw=True)
         image = load_image(image_file_name)
-
-        self.cache[index] = (image, mask, hash)
+        
         return image, mask, hash
 
