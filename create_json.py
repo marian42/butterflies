@@ -31,35 +31,51 @@ def create_json_dict(item, x, y):
 
     return result
 
-DATAQUADS_PER_QUAD = 16
+DATAQUADS_PER_FILE = 16
 
-def save_dataquads(quads, depth):
-    dataquads = {}
-    for x in quads:
-        data_x = x // DATAQUADS_PER_QUAD
-        for y in quads[x]:
-            data_y = y // DATAQUADS_PER_QUAD
-            if (data_x, data_y) not in dataquads:
-                dataquads[(data_x, data_y)] = {}
-            dataquad = dataquads[(data_x, data_y)]
-            if x not in dataquad:
-                dataquad[x] = {}
-            dataquad[x][y] = quads[x][y]
-    for data_x, data_y in dataquads:
-        json_string = json.dumps(dataquads[(data_x, data_y)])
-        with open('data/meta/{:d}_{:d}_{:d}.json'.format(depth, data_x, data_y), 'w') as file:
-            file.write(json_string)
+class DataQuads():
+    def __init__(self, depth):
+        self.depth = depth
+        self.quad_count = 2**(depth - 9)
+        self.quads = {}
+
+    def insert(self, item):
+        x, y = item['x'], item['y']
+
+        quad_x = math.floor(x * self.quad_count)
+        quad_y = math.floor(y * self.quad_count)
+
+        if quad_x not in self.quads:
+            self.quads[quad_x] = {}
+        if quad_y not in self.quads[quad_x]:
+            self.quads[quad_x][quad_y] = []
+        
+        self.quads[quad_x][quad_y].append(item)
+
+    def save(self):
+        dataquad_files = {}
+        for x in self.quads:
+            file_x = x // DATAQUADS_PER_FILE
+            for y in self.quads[x]:
+                file_y = y // DATAQUADS_PER_FILE
+                if (file_x, file_y) not in dataquad_files:
+                    dataquad_files[(file_x, file_y)] = {}
+                dataquad_file = dataquad_files[(file_x, file_y)]
+                if x not in dataquad_file:
+                    dataquad_file[x] = {}
+                dataquad_file[x][y] = self.quads[x][y]
+        for file_x, file_y in dataquad_files:
+            json_string = json.dumps(dataquad_files[(file_x, file_y)])
+            with open('data/meta/{:d}_{:d}_{:d}.json'.format(self.depth, file_x, file_y), 'w') as file:
+                file.write(json_string)
 
 data = json.load(open('data/clusters.json', 'r'))
 
 result = {}
 for depth_str in data:
-    depth = int(depth_str)
     items = data[depth_str]
-
-    quad_count = 2**(depth - 9)
-
-    quads = {}
+    depth = int(depth_str)
+    quads = DataQuads(depth)
     
     for item in items:
         x, y, image_id = item['x'], -item['y'], item['image']
@@ -67,30 +83,20 @@ for depth_str in data:
         if image_id not in butterflies_by_image_id:
             continue
 
-        json_dict = create_json_dict(butterflies_by_image_id[image_id], x, y)
-
-        quad_x = math.floor(x * quad_count)
-        quad_y = math.floor(y * quad_count)
-
-        if quad_x not in quads:
-            quads[quad_x] = {}
-        if quad_y not in quads[quad_x]:
-            quads[quad_x][quad_y] = []
-        
-        quads[quad_x][quad_y].append(json_dict)
+        quads.insert(create_json_dict(butterflies_by_image_id[image_id], x, y))
     
     if depth < 13:
-        result[depth] = quads
+        result[depth] = quads.quads
     else:
-        save_dataquads(quads, depth)
+        quads.save()
 
 from image_loader import ImageDataset
 dataset = ImageDataset()
 codes = np.load('data/latent_codes_embedded_moved.npy')
 
 final_depth = max(int(d) for d in data.keys()) + 1
-quads = {}
-quad_count = 2**(final_depth - 9)
+
+final_depth_quads = DataQuads(final_depth)
 
 for i in range(codes.shape[0]):
     x, y, image_id = codes[i, 0], -codes[i, 1], dataset.hashes[i]
@@ -98,18 +104,9 @@ for i in range(codes.shape[0]):
     if image_id not in butterflies_by_image_id:
         continue
 
-    json_dict = create_json_dict(butterflies_by_image_id[image_id], x, y)
+    final_depth_quads.insert(create_json_dict(butterflies_by_image_id[image_id], x, y))
 
-    quad_x = math.floor(x * quad_count)
-    quad_y = math.floor(y * quad_count)
-
-    if quad_x not in quads:
-        quads[quad_x] = {}
-    if quad_y not in quads[quad_x]:
-        quads[quad_x][quad_y] = []
-    quads[quad_x][quad_y].append(json_dict)
-
-save_dataquads(quads, final_depth)
+final_depth_quads.save()
 
 result['names'] = strings
 json_string = json.dumps(result)
