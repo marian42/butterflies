@@ -46,7 +46,7 @@ def try_make_int(string):
     except:
         return None
 
-def get_time(row):    
+def get_time(row):
     day = try_make_int(row[9])
     month = try_make_int(row[50])
     year = try_make_int(row[70])
