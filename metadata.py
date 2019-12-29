@@ -15,18 +15,19 @@ class Butterfly():
         self.genus = row[1]
         self.species = row[2]
         self.subspecies = row[3]
-        self.sex = row[4]
-        self.latitude = row[5]
-        self.longitude = row[6]
-        self.country = row[7]
-        self.name = row[8]
-        self.name_author = row[9]
-        self.day = row[10]
-        self.month = row[11]
-        self.year = row[12]
-        self.id = int(row[13])
-        self.occurence_id = row[14]
-        self.image_id = row[15]
+        self.higher_classification = row[4]
+        self.sex = row[5]
+        self.latitude = row[6]
+        self.longitude = row[7]
+        self.country = row[8]
+        self.name = row[9]
+        self.name_author = row[10]
+        self.day = row[11]
+        self.month = row[12]
+        self.year = row[13]
+        self.id = int(row[14])
+        self.occurence_id = row[15]
+        self.image_id = row[16]
 
     @property
     def image_filename(self):

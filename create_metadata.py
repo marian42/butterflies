@@ -17,6 +17,7 @@ columns = [
     DataProperty(20, 'Genus'),
     DataProperty(62, 'Species'),
     DataProperty(31, 'Subspecies'),
+    DataProperty(25, 'Higher Classification'),
     DataProperty(61, 'Sex'),
     DataProperty(10, 'Latitude', float),
     DataProperty(11, 'Longitude', float),
