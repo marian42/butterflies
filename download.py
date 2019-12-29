@@ -18,4 +18,4 @@ for item in tqdm(items):
         image_file.write(urlopen(request).read())
         image_file.close()
     except HTTPError:
-        print("Error downloading file {:s}".format(image_id))
+        print("Error downloading file {:s}".format(item.image_url))
