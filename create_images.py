@@ -57,7 +57,7 @@ for item in tqdm(data_loader):
     image, result_file_name = item
     image = image.to(device)
 
-    image = classifier.apply(image, margin=MARGIN, create_alpha=ALPHA)
+    image = classifier.apply(image, margin=0, create_alpha=True)
     
     if image is None or len(image.shape) != 3 or image.shape[1] < 10 or image.shape[2] < 10:
         print("Found nothing.")
