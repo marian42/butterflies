@@ -1,8 +1,6 @@
 import numpy as np
 from tqdm import tqdm
-import matplotlib.pyplot as plt
 from sklearn.neighbors import KDTree
-from matplotlib.patches import Circle
 
 codes = np.load('data/latent_codes_embedded.npy')
 min_value = np.min(codes, axis=0)
@@ -33,28 +31,13 @@ IMAGE_SIZE = 128
 TILE_DEPTH = 8
 RADIUS = IMAGE_SIZE / 2 / TILE_SIZE / 2**TILE_DEPTH
 
-def create_plot(points, index):
-    plt.clf
-    fig, ax = plt.subplots()
-    fig.set_size_inches(20, 20)
-    r = 0.25
-    plt.xlim((-r, r))
-    plt.ylim((-r, r))
-    plt.scatter(points[:, 0], points[:, 1], marker='o', s=1, color='r', zorder=100)
-    plt.savefig('data/plots/{:05d}.png'.format(index), bbox_inches='tight')
-    plt.close(fig)
-
 def move_mutiple(points, radius=RADIUS, steps=10000):
     points_moved = points.shape[0]
     i = 0
     while points_moved > 100:
         try:
             points, points_moved = move(points, radius * 2, radius / 4)
-
             print(points_moved)
-            if i % 50 == 0:
-                create_plot(points, i)
-            
             i += 1
         except KeyboardInterrupt:
             print("Stopping after {:d} iterations.".format(i))
