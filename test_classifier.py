@@ -26,5 +26,8 @@ while True:
     image = load_image(file_name).to(device)
     image = classifier.apply(image)
     
+    if image is None:
+        continue
+    
     copyfile(file_name, 'data/test/{:s}.jpg'.format(hash))
     utils.save_image(image, 'data/test/{:s}_result.png'.format(hash))
