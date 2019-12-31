@@ -15,6 +15,8 @@ from classifier import Classifier
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 CLASSIFIER_FILENAME = 'trained_models/classifier.to'
 
+SAVE_EXAMPLES = False
+
 classifier = Classifier()
 try:
     classifier.load_state_dict(torch.load(CLASSIFIER_FILENAME))
@@ -56,7 +58,7 @@ def train():
             error = loss.item()
             loss_history.append(error)
 
-            if epoch % 100 == 0:
+            if epoch % 100 == 0 and SAVE_EXAMPLES:
                 for i in range(image.shape[0]):
                     save_example(epoch, hash[i], image[i, :, :], output[i, :, :])
         print(epoch, np.mean(loss_history))
