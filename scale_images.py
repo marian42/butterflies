@@ -18,5 +18,7 @@ for file_name in tqdm(file_names):
         image = image[:, :, :3]
         image = transform.resize(image, (OUTPUT_RESOLUTION, OUTPUT_RESOLUTION), preserve_range=True).astype(np.uint8)
         io.imsave(out_file_name, image)
-    except:
+    except Exception as exception:
+        if isinstance(exception, KeyboardInterrupt):
+            raise exception
         print(("Error while handling {:s}".format(file_name)))
