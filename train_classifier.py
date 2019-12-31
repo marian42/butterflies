@@ -48,7 +48,6 @@ def train():
             image = image.to(device)
             mask = mask.to(device)
 
-
             classifier.zero_grad()
             output = classifier(image).squeeze(1)
             loss = criterion(output, mask)
