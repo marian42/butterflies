@@ -11,9 +11,10 @@ import math
 
 RESOLUTION = 64
 USE_ALPHA_IMAGES = False
+WHITE_THRESHOLD = 0.95
 
 def clip_image(image):
-    coords = ((image[0, :, :] < 1) | (image[1, :, :] < 1) | (image[2, :, :] < 1)).nonzero()
+    coords = ((image[0, :, :] < WHITE_THRESHOLD) | (image[1, :, :] < WHITE_THRESHOLD) | (image[2, :, :] < WHITE_THRESHOLD)).nonzero()
     top_left, _ = torch.min(coords, dim=0)
     bottom_right, _ = torch.max(coords, dim=0)
     image = image[:, top_left[0]:bottom_right[0], top_left[1]:bottom_right[1]]
