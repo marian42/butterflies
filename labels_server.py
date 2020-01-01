@@ -3,6 +3,7 @@ import json
 from flask import Flask, send_file, jsonify, request
 import metadata
 import random
+import csv
 
 items = metadata.load()
 
@@ -144,6 +145,11 @@ INDEX_HTML = '''<!DOCTYPE html>
     </body>
 </html>'''
 
+rotation_file = open('data/rotations.csv', 'r')
+reader = csv.reader(rotation_file)
+existing_ids = set(row[0] for row in reader)
+rotation_file.close
+
 rotation_file = open('data/rotations.csv', 'a')
 
 @app.route('/')
@@ -161,7 +167,7 @@ def get_image(id):
 def get_id():
     while True:
         item = random.choice(items)
-        if os.path.exists(IMAGE_FILE_FORMAT.format(item.image_id)):
+        if os.path.exists(IMAGE_FILE_FORMAT.format(item.image_id)) or item.image_id in existing_ids:
             return item.image_id
 
 
