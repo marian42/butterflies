@@ -7,7 +7,7 @@ from skimage import io, transform
 
 class ImageDataset(Dataset):
     def __init__(self, return_hashes=False):
-        file_names = glob.glob(os.path.join('data/images_128/', '**.jpg'), recursive=True)
+        file_names = glob.glob('data/images_128/**.jpg', recursive=True)
         self.hashes = sorted([f.split('/')[-1][:-4] for f in file_names])
         self.return_hashes = return_hashes        
         

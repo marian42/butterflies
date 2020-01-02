@@ -29,7 +29,7 @@ def load_image(file_name, is_bw=False):
 
 class MaskDataset(Dataset):
     def __init__(self):
-        file_names = glob.glob(os.path.join('data/masks/', '**.png'), recursive=True)
+        file_names = glob.glob('data/masks/**.png', recursive=True)
         self.hashes = [f.split('/')[-1][:-4] for f in file_names]
         
     def __len__(self):
