@@ -190,6 +190,10 @@ def get_id():
 @app.route('/save_rotation', methods=['POST'])
 def save_rotation():
     image_id = request.args.get('id')
+    if image_id in existing_ids:
+        print("Skipping duplicate id.")
+        return 'ok', 200
+    existing_ids.add(image_id)        
     rotation = request.args.get('rotation')
     rotation_file.write('{:s},{:s}\n'.format(image_id, rotation))
     rotation_file.flush()
