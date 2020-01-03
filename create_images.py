@@ -48,7 +48,7 @@ class ImageDataset(Dataset):
         return image, result_file_name
 
 dataset = ImageDataset()
-data_loader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=8)
+data_loader = DataLoader(dataset, batch_size=1, shuffle=True, num_workers=8)
 
 for item in tqdm(data_loader):
     if item == SKIP_ITEM:
