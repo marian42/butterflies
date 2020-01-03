@@ -91,15 +91,19 @@ INDEX_HTML = '''<!DOCTYPE html>
             var currentId = null;
             var currentRotation = 0;
 
-            function loadImage() {
+            function loadImage(imageId) {
+                currentId = imageId;
+                image.src = 'image/' + currentId + '.png';
+                image_id.innerHTML = currentId;
+                setRotation(60 * Math.random() - 30);
+            }
+
+            function requestImage() {
                 var request = new XMLHttpRequest();
                 request.open('GET', 'getid');
                 request.onload = function() {
                     if (request.status === 200) {
-                        currentId = request.responseText;
-                        image.src = 'image/' + currentId + '.png';
-                        image_id.innerHTML = currentId;
-                        setRotation(60 * Math.random() - 30);
+                        loadImage(request.responseText);
                     }
                 };
                 request.send();
@@ -110,8 +114,8 @@ INDEX_HTML = '''<!DOCTYPE html>
                 currentRotation = value;
             }
 
-            loadImage();
-            btnLoad.onclick = loadImage;
+            requestImage();
+            btnLoad.onclick = requestImage;
 
             var mousePressed = false;
             var lastMousePosition = 0;
@@ -136,11 +140,23 @@ INDEX_HTML = '''<!DOCTYPE html>
                 request.open('POST', 'save_rotation?id=' + currentId + '&rotation=' + currentRotation);
                 request.onload = function() {
                     if (request.status === 200) {
-                        loadImage();
+                        requestImage();
                     }
                 };
                 request.send();
             };
+
+            document.addEventListener("drag", function( event ) {}, false);
+            document.addEventListener("dragover", function( event ) {
+                event.preventDefault();
+            }, false);
+
+            document.addEventListener('drop', function(event) {
+                event.preventDefault();
+                var fileName = event.dataTransfer.files[0].name;
+                var imageId = fileName.substring(0, fileName.length - 4);
+                loadImage(imageId);
+            }, false);
         </script>
     </body>
 </html>'''
