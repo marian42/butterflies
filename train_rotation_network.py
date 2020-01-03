@@ -12,7 +12,7 @@ import random
 from PIL import Image, ImageDraw
 
 dataset = RotationDataset()
-data_loader = DataLoader(dataset, batch_size=16, shuffle=True, num_workers=4)
+data_loader = DataLoader(dataset, batch_size=16, shuffle=True, num_workers=4, drop_last=True)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 NETWORK_FILENAME = 'trained_models/rotation.to'
