@@ -29,6 +29,15 @@ def get_rotation_angle(image):
     result = network(image).squeeze()
     return -math.degrees(math.atan2(result[0], result[1]))
 
+WHITE_THRESHOLD = 0.95
+
+def clip_image(image):
+    coords = ((image[:, :, 0] < WHITE_THRESHOLD) | (image[:, :, 1] < WHITE_THRESHOLD) | (image[:, :, 2] < WHITE_THRESHOLD)).nonzero()
+    top_left = np.min(coords, axis=1)
+    bottom_right = np.max(coords, axis=1)
+    center = ((top_left + bottom_right) / 2).astype(int)
+    half_size = np.max(bottom_right - top_left).item() // 2
+    return image[center[0] - half_size:center[0] + half_size, center[1]-half_size:center[1]+half_size, :]
 
 for file_name in tqdm(file_names):    
     hash = file_name.split('/')[-1][:-4]
@@ -41,7 +50,8 @@ for file_name in tqdm(file_names):
 
         if ROTATE:
             angle = get_rotation_angle(image)
-            image = transform.rotate(image, angle, resize=True, clip=True, mode='constant', cval=1) * 255
+            image = transform.rotate(image, angle, resize=True, clip=True, mode='constant', cval=1)
+            image = clip_image(image) * 255
 
         image = transform.resize(image, (OUTPUT_RESOLUTION, OUTPUT_RESOLUTION), preserve_range=True).astype(np.uint8)
         io.imsave(out_file_name, image)
