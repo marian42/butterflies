@@ -35,9 +35,12 @@ def clip_image(image):
     coords = ((image[:, :, 0] < WHITE_THRESHOLD) | (image[:, :, 1] < WHITE_THRESHOLD) | (image[:, :, 2] < WHITE_THRESHOLD)).nonzero()
     top_left = np.min(coords, axis=1)
     bottom_right = np.max(coords, axis=1)
-    center = ((top_left + bottom_right) / 2).astype(int)
-    half_size = np.max(bottom_right - top_left).item() // 2
-    return image[center[0] - half_size:center[0] + half_size, center[1]-half_size:center[1]+half_size, :]
+    image = image[top_left[0]:bottom_right[0], top_left[1]:bottom_right[1], :]
+    new_size = np.max(bottom_right - top_left)
+    result = np.ones((new_size, new_size, 3), dtype=np.float32)
+    x, y = (new_size - image.shape[0]) // 2, (new_size - image.shape[1]) // 2
+    result[x:x+image.shape[0], y:y+image.shape[1], :] = image
+    return result
 
 for file_name in tqdm(file_names):    
     hash = file_name.split('/')[-1][:-4]
