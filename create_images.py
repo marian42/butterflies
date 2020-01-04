@@ -41,7 +41,7 @@ class ImageDataset(Dataset):
 
         try:
             image = load_image(image_file_name)
-        except ValueError:
+        except:
             print("Could not open {:s}.".format(image_file_name))
             return SKIP_ITEM
         
@@ -57,7 +57,12 @@ for item in tqdm(data_loader):
     image, result_file_name = item
     image = image.to(device)
 
-    image = classifier.apply(image, margin=0, create_alpha=True)
+    try:
+        image = classifier.apply(image, margin=0, create_alpha=True)
+    except Exception as exception:
+        if isinstance(exception, KeyboardInterrupt):
+            raise exception
+        print(("Error while handling {:s}".format(result_file_name[0])))
     
     if image is None or len(image.shape) != 3 or image.shape[1] < 10 or image.shape[2] < 10:
         print("Found nothing.")
