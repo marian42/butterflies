@@ -40,7 +40,7 @@ class RotationDataset(Dataset):
         file_name = ('data/images_alpha/{:s}.png' if USE_ALPHA_IMAGES else 'data/images_128/{:s}.jpg').format(self.image_ids[index])
         image = io.imread(file_name)
 
-        angle = random.random() * 10 - 5
+        angle = random.random() * 10 - 5 + random.randint(0, 3) * 90
         image = transform.rotate(image[:, :, :3] if USE_ALPHA_IMAGES else image, -self.angles[index] + angle, resize=True, clip=True, mode='constant', cval=1)
         image = torch.tensor(image.transpose((2, 0, 1)), dtype=torch.float32)
         image = clip_image(image)
