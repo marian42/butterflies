@@ -20,7 +20,7 @@ INDEX_HTML = '''<!DOCTYPE html>
 
     <body>
         <div id="viewer">
-            <img id="image"></img>
+            <div id="image" draggable="false" ondragstart="return false;"></div>
             <div class="hline" style="top:100px;"></div>
             <div class="hline" style="top:150px;"></div>
             <div class="hline" style="top:200px;"></div>
@@ -46,7 +46,7 @@ INDEX_HTML = '''<!DOCTYPE html>
                 height: 700px;
             }
 
-            img {
+            #image {
                 width: 500px;
                 height: 500px;
                 left: 100px;
@@ -55,6 +55,7 @@ INDEX_HTML = '''<!DOCTYPE html>
                 pointer-events: none;
                 user-select: none;
                 -webkit-user-drag: none;
+                background-size: 500px;
             }
 
             .hline {
@@ -93,7 +94,7 @@ INDEX_HTML = '''<!DOCTYPE html>
 
             function loadImage(imageId) {
                 currentId = imageId;
-                image.src = 'image/' + currentId + '.png';
+                image.style.backgroundImage = 'url(image/' + currentId + '.png)';
                 image_id.innerHTML = currentId;
                 setRotation(60 * Math.random() - 30);
             }
@@ -120,18 +121,22 @@ INDEX_HTML = '''<!DOCTYPE html>
             var mousePressed = false;
             var lastMousePosition = 0;
 
+            function getMousePosition(event) {
+                return -Math.atan2(event.clientX - 350, event.clientY - 350) / Math.PI * 180;
+            }
+
             viewer.onmousedown = function(event) {
                 mousePressed = true;
-                lastMousePosition = event.clientX;
+                lastMousePosition = getMousePosition(event);
             };
             viewer.onmouseup = function(event) {
                 mousePressed = false;
             };
             viewer.onmousemove = function(event) {
                 if (mousePressed) {
-                    movement = event.clientX - lastMousePosition;
-                    lastMousePosition = event.clientX;
-                    setRotation(currentRotation + movement / 5);
+                    movement = getMousePosition(event) - lastMousePosition;
+                    lastMousePosition = getMousePosition(event);
+                    setRotation(currentRotation + movement);
                 }
             };
 
