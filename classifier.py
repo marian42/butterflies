@@ -1,5 +1,7 @@
 import torch
 import torch.nn as nn
+import cv2
+import numpy as np
 
 BREADTH = 8
 
@@ -68,6 +70,12 @@ class Block(nn.Module):
         return x, skip_values
 
 
+def remove_smaller_components(array):
+    mask = (array > 0.5)
+    _, labels, stats, _ = cv2.connectedComponentsWithStats(mask.squeeze().cpu().numpy(), connectivity=4)
+    max_label = np.argmax(stats[1:, 4]) + 1
+    array[torch.from_numpy(labels != max_label).unsqueeze(0)] = 0
+
 class Classifier(nn.Module):
     def __init__(self):
         super(Classifier, self).__init__()
@@ -98,6 +106,7 @@ class Classifier(nn.Module):
             image = image.squeeze(0)
         
         mask = self(image.unsqueeze(0)).squeeze(0)
+        remove_smaller_components(mask)
         background = torch.tensor(background, device=image.device, dtype=torch.float32).reshape(3, 1, 1)
         
         if clipping_range is not None:
