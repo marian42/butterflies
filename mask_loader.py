@@ -4,15 +4,19 @@ import os
 import numpy as np
 import glob
 from skimage import io, transform
+import random
 
 WIDTH = 1152 # 128 * 9
 HEIGHT = 768 # 128 * 6
 
-def load_image(file_name, is_bw=False):
+def load_image(file_name, is_bw=False, rotation = None):
     image = io.imread(file_name)
 
-    if image.shape[0] == 2160 and image.shape[1] == 1440:
+    if image.shape[0] == 2160 and image.shape[1] == 1440 and rotation is None:
         image = np.rot90(image)
+
+    if rotation is not None:
+        image = np.rot90(image, k=rotation)
 
     while image.shape[0] > HEIGHT or image.shape[1] > WIDTH:
         image = transform.resize(image, (image.shape[0] // 2, image.shape[1] // 2), preserve_range=True)
@@ -40,8 +44,10 @@ class MaskDataset(Dataset):
         mask_file_name = 'data/masks/{:s}.png'.format(hash)
         image_file_name = 'data/raw/{:s}.jpg'.format(hash)
 
-        mask = load_image(mask_file_name, is_bw=True)
-        image = load_image(image_file_name)
+        rotation = random.randint(0, 3)
+
+        mask = load_image(mask_file_name, is_bw=True, rotation=rotation)
+        image = load_image(image_file_name, rotation=rotation)
         
         return image, mask, hash
 
