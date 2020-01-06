@@ -12,9 +12,6 @@ HEIGHT = 768 # 128 * 6
 def load_image(file_name, is_bw=False, rotation = None):
     image = io.imread(file_name)
 
-    if image.shape[0] == 2160 and image.shape[1] == 1440 and rotation is None:
-        image = np.rot90(image)
-
     if rotation is not None:
         image = np.rot90(image, k=rotation)
 
