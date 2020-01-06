@@ -43,9 +43,6 @@ def move_mutiple(points, radius=RADIUS, steps=10000):
             print("Stopping after {:d} iterations.".format(i))
     return points
 
-fig = plt.figure()
-ax = fig.add_subplot(111, aspect='equal')
-
 codes = move_mutiple(codes)
 
 OUTPUT_FILENAME = 'data/latent_codes_embedded_moved.npy'
