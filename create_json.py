@@ -20,7 +20,6 @@ def create_json_dict(item, x, y):
         'y': y,
         'occId': item.occurence_id,
         'image': item.image_id,
-        'time': item.pretty_time,
         'properties': [get_name_id(p) for p in (item.family, item.genus, item.species, item.subspecies, item.sex, item.country, item.pretty_name)]
     }
 
@@ -28,6 +27,8 @@ def create_json_dict(item, x, y):
         result['lat'] = float(item.latitude)
     if item.longitude != '':
         result['lon'] = float(item.longitude)
+    if item.pretty_time is not None:
+        result['time'] = item.pretty_time
 
     return result
 
