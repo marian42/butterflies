@@ -58,6 +58,8 @@ if __name__ == '__main__':
         network.cuda()
         network.eval()
 
+        rotation_file = open('data/rotations_calculated.csv', 'a')
+
     file_names = glob.glob('data/images_alpha/**.png', recursive=True)
     random.shuffle(file_names)
 
@@ -82,6 +84,8 @@ if __name__ == '__main__':
             try:
                 image = io.imread(file_name)
                 angle = get_rotation_angle(image[:, :, :3])
+                rotation_file.write('{:s},{:f}\n'.format(hash, angle))
+                rotation_file.flush()
             except KeyboardInterrupt:
                 break
             except:
