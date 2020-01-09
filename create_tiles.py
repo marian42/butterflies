@@ -10,6 +10,7 @@ from multiprocessing import Pool
 import traceback
 import math
 import json
+import csv
 
 latent_codes = np.load('data/latent_codes.npy')
 codes = np.load('data/latent_codes_embedded_moved.npy')
@@ -28,6 +29,11 @@ dataset = ImageDataset()
 
 codes_by_depth = []
 hashes_by_depth = []
+
+rotation_file = open('data/rotations_calculated.csv', 'r')
+reader = csv.reader(rotation_file)
+rotations = {row[0]: float(row[1]) for row in reader}
+rotation_file.close()
 
 def create_tile(depth, x, y):
     tile_file_name = TILE_FILE_FORMAT.format(depth + DEPTH_OFFSET, x, y)
@@ -70,18 +76,22 @@ def create_tile(depth, x, y):
 
             for i in range(indices.shape[0]):
                 index = indices[i]
-                image_file_name = 'data/images_alpha/{:s}.png'.format(hashes[index])
-                image = Image.open(image_file_name)
-                image = image.resize((IMAGE_SIZE, IMAGE_SIZE), resample=Image.BICUBIC)
+                image_id = hashes[index]
+                angle = rotations[image_id]
+                image_file_name = 'data/images_alpha/{:s}.png'.format(image_id)
+                image_original = Image.open(image_file_name)
+                image = image_original.rotate(angle, resample=Image.BICUBIC, expand=True)
+                size = int(IMAGE_SIZE * image.size[0] / image_original.size[0])
+                image = image.resize((size, size), resample=Image.BICUBIC)
 
-                shadow_mask = Image.new("L", (IMAGE_SIZE + 2 * SHADOW_RADIUS, IMAGE_SIZE + 2 * SHADOW_RADIUS), 0)
+                shadow_mask = Image.new("L", (size + 2 * SHADOW_RADIUS, size + 2 * SHADOW_RADIUS), 0)
                 shadow_mask.paste(image.split()[-1], (SHADOW_RADIUS, SHADOW_RADIUS))
                 shadow_mask = shadow_mask.filter(ImageFilter.GaussianBlur(radius=SHADOW_RADIUS // 2))
                 enhancer = ImageEnhance.Brightness(shadow_mask)
                 shadow_mask = enhancer.enhance(SHADOW_VALUE)
 
-                tile.paste((0, 0, 0), (int(positions[i, 0] - IMAGE_SIZE // 2 - SHADOW_RADIUS), int(positions[i, 1] - IMAGE_SIZE // 2 - SHADOW_RADIUS)), mask=shadow_mask)
-                tile.paste(image, (int(positions[i, 0] - IMAGE_SIZE // 2), int(positions[i, 1] - IMAGE_SIZE // 2)), mask=image)
+                tile.paste((0, 0, 0), (int(positions[i, 0] - size // 2 - SHADOW_RADIUS), int(positions[i, 1] - size // 2 - SHADOW_RADIUS)), mask=shadow_mask)
+                tile.paste(image, (int(positions[i, 0] - size // 2), int(positions[i, 1] - size // 2)), mask=image)
     
     if not is_empty:
         tile.save(tile_file_name)
