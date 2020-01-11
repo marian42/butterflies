@@ -177,6 +177,9 @@
                 result += '</table>';
 
                 result += '<a href="https://data.nhm.ac.uk/object/' + item.occId + '">NHM Data Portal</a>';
+                if (document.location.href.indexOf('0.0.0.0') != -1) {
+                    result += '&nbsp;<a href="http://0.0.0.0:5000/?' + item.image + '" target="_blank">Fix rotation</a>';
+                } 
                 return result;
             }
 

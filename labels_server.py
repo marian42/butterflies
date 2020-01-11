@@ -114,7 +114,12 @@ INDEX_HTML = '''<!DOCTYPE html>
                 currentRotation = value;
             }
 
-            requestImage();
+            var urlId = document.location.href.split('?')[1];
+            if (urlId !== undefined) {
+                loadImage(urlId);
+            } else {
+                requestImage();
+            }
             btnLoad.onclick = requestImage;
 
             var mousePressed = false;
