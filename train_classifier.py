@@ -26,7 +26,7 @@ classifier.cuda()
 
 from mask_loader import MaskDataset
 dataset = MaskDataset()
-data_loader = DataLoader(dataset, batch_size=8, shuffle=True, num_workers=4)
+data_loader = DataLoader(dataset, batch_size=8, shuffle=True, num_workers=8)
 
 optimizer = optim.Adam(classifier.parameters(), lr=0.0002)
 criterion = nn.BCELoss()

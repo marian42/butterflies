@@ -14,8 +14,10 @@ def load_image(file_name, is_bw=False, rotation = None):
     if rotation is not None:
         image = np.rot90(image, k=rotation)
 
-    while image.shape[0] > HEIGHT or image.shape[1] > WIDTH:
-        image = transform.resize(image, (image.shape[0] // 2, image.shape[1] // 2), preserve_range=True)
+    if image.shape[0] > HEIGHT or image.shape[1] > WIDTH:
+        scale_factor = max(image.shape[0] / HEIGHT,image.shape[1] / WIDTH)
+        old_shape = image.shape
+        image = transform.resize(image, (int(image.shape[0] / scale_factor), int(image.shape[1] / scale_factor)), preserve_range=True)
 
     if is_bw:
         result = np.zeros((HEIGHT, WIDTH), dtype=np.float32)
