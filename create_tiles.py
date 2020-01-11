@@ -11,18 +11,10 @@ import traceback
 import math
 import json
 import csv
+from config import *
 
 latent_codes = np.load('data/latent_codes.npy')
 codes = np.load('data/latent_codes_embedded_moved.npy')
-TILE_FILE_FORMAT = 'data/tiles/{:d}/{:d}/{:d}.jpg'
-
-DEPTH_OFFSET = 8
-
-TILE_SIZE = 256
-IMAGE_SIZE = 128
-TILE_DEPTH = 8
-SHADOW_RADIUS = 12
-SHADOW_VALUE = 0.8
 
 from image_loader import ImageDataset
 dataset = ImageDataset()

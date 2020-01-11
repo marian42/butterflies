@@ -7,8 +7,8 @@ from skimage import io, transform
 import csv
 import random
 import math
+from config import *
 
-RESOLUTION = 64
 USE_ALPHA_IMAGES = False
 WHITE_THRESHOLD = 0.95
 
@@ -44,6 +44,6 @@ class RotationDataset(Dataset):
         image = transform.rotate(image[:, :, :3] if USE_ALPHA_IMAGES else image, -self.angles[index] + angle, resize=True, clip=True, mode='constant', cval=1)
         image = torch.tensor(image.transpose((2, 0, 1)), dtype=torch.float32)
         image = clip_image(image)
-        image = F.adaptive_avg_pool2d(image, (RESOLUTION, RESOLUTION))
+        image = F.adaptive_avg_pool2d(image, (ROTATION_NETWORK_RESOLUTION, ROTATION_NETWORK_RESOLUTION))
 
         return image, torch.tensor((math.sin(math.radians(angle)), math.cos(math.radians(angle))))

@@ -8,6 +8,7 @@ import random
 import torch
 from torch.utils.data import DataLoader, Dataset
 import multiprocessing
+from config import *
 
 OUTPUT_RESOLUTION = 128
 ROTATE = True
@@ -26,7 +27,7 @@ class ImageDataset(Dataset):
         
         try:
             image = io.imread('data/images_alpha/{:s}.png'.format(hash))
-            image = transform.resize(image[:, :, :3], (64, 64), preserve_range=True)
+            image = transform.resize(image[:, :, :3], (ROTATION_NETWORK_RESOLUTION, ROTATION_NETWORK_RESOLUTION), preserve_range=True)
             image = torch.tensor(image.transpose((2, 0, 1)), dtype=torch.float32) / 255
         except:
             print("Error while loading {:s}".format(hash))

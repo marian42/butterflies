@@ -1,6 +1,5 @@
 import os
-import json
-from flask import Flask, send_file, jsonify, request
+from flask import Flask, send_file, request
 import metadata
 import random
 import csv

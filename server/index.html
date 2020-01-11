@@ -120,6 +120,8 @@
             const ICON_WIDTH = 128;
             const ICON_HEIGHT = 96;
 
+            const DATAQUADS_PER_FILE = 16;
+
             const icon = L.divIcon({
                 className: 'butterfly',
                 iconSize: [ICON_WIDTH, ICON_HEIGHT],
@@ -278,7 +280,7 @@
                     return;
                 }
 
-                var quadCount = getQuadCount(depth) / 16;
+                var quadCount = getQuadCount(depth) / DATAQUADS_PER_FILE;
                 var bounds = padBounds(map.getBounds(), ICON_WIDTH / 2, ICON_HEIGHT / 2);
 
                 var xRange = [

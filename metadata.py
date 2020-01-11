@@ -1,5 +1,6 @@
 import csv
 from tqdm import tqdm
+from config import *
 
 MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
@@ -63,7 +64,7 @@ class Butterfly():
             return self.name
 
 def load():
-    file = open('data/metadata.csv', 'r')
+    file = open(METADATA_FILE_NAME, 'r')
     reader = csv.reader(file)
     reader_iterator = iter(reader)
     column_names = next(reader_iterator)

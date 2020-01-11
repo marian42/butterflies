@@ -2,6 +2,7 @@ import json
 import math
 import numpy as np
 import metadata
+from config import *
 
 butterflies_by_image_id = {i.image_id: i for i in metadata.load()}
 
@@ -32,7 +33,6 @@ def create_json_dict(item, x, y):
 
     return result
 
-DATAQUADS_PER_FILE = 16
 
 class DataQuads():
     def __init__(self, depth):
@@ -67,7 +67,7 @@ class DataQuads():
                 dataquad_file[x][y] = self.quads[x][y]
         for file_x, file_y in dataquad_files:
             json_string = json.dumps(dataquad_files[(file_x, file_y)])
-            with open('data/meta/{:d}_{:d}_{:d}.json'.format(self.depth, file_x, file_y), 'w') as file:
+            with open(META_DATA_FORMAT.format(self.depth, file_x, file_y), 'w') as file:
                 file.write(json_string)
 
 data = json.load(open('data/clusters.json', 'r'))

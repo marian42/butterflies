@@ -1,9 +1,6 @@
-import json
 from tqdm import tqdm
-from collections import Counter
 import csv
-import math
-import numpy as np
+from config import *
 
 class DataProperty():
     def __init__(self, column, name, type=str):
@@ -77,7 +74,7 @@ for row in reader_iterator:
         continue
     image_ids.append((image, id))
 
-with open('data/metadata.csv', 'w') as file:
+with open(METADATA_FILE_NAME, 'w') as file:
     csv_writer = csv.writer(file, delimiter=',')
     csv_writer.writerow([c.name for c in columns] + ['image'])
     for image, id in tqdm(image_ids, desc='Writing metadata.csv'):

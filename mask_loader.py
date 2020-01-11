@@ -1,6 +1,5 @@
 import torch
 from torch.utils.data import Dataset
-import os
 import numpy as np
 import glob
 from skimage import io, transform

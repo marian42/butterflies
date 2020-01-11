@@ -1,6 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import torch
 import sys
 import os
 from tqdm import tqdm

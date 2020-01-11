@@ -1,11 +1,9 @@
 import os
 import json
 from flask import Flask, send_file, jsonify
+from config import *
 
 app = Flask(__name__)
-
-TILE_FILE_FORMAT = 'data/tiles/{:d}/{:d}/{:d}.jpg'
-META_DATA_FORMAT = 'data/meta/{:d}_{:d}_{:d}.json'
 
 @app.route('/')
 def index():

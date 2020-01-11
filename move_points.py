@@ -1,6 +1,7 @@
 import numpy as np
 from tqdm import tqdm
 from sklearn.neighbors import KDTree
+from config import *
 
 codes = np.load('data/latent_codes_embedded.npy')
 min_value = np.min(codes, axis=0)
@@ -26,9 +27,6 @@ def move(points, radius, amount):
     points[mask] -= directions * amount
     return points, points_moved
 
-TILE_SIZE = 256
-IMAGE_SIZE = 128
-TILE_DEPTH = 8
 RADIUS = IMAGE_SIZE / 2 / TILE_SIZE / 2**TILE_DEPTH
 
 def move_mutiple(points, radius=RADIUS, steps=10000):

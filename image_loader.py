@@ -1,9 +1,8 @@
 import torch
 from torch.utils.data import Dataset
-import os
 import numpy as np
 import glob
-from skimage import io, transform
+from skimage import io
 
 class ImageDataset(Dataset):
     def __init__(self, return_hashes=False):
