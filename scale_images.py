@@ -6,17 +6,33 @@ from tqdm import tqdm
 import math
 import random
 import torch
+from torch.utils.data import DataLoader, Dataset
 import multiprocessing
 
 OUTPUT_RESOLUTION = 128
 ROTATE = True
 
-@torch.no_grad()
-def get_rotation_angle(image):
-    image = transform.resize(image, (64, 64), preserve_range=True)
-    image = torch.tensor(image.transpose((2, 0, 1)), dtype=torch.float32, device=device).unsqueeze(0) / 255
-    result = network(image).squeeze()
-    return -math.degrees(math.atan2(result[0], result[1]))
+ERROR_WHILE_LOADING = -1
+
+class ImageDataset(Dataset):
+    def __init__(self, file_names):
+        self.hashes = [f.split('/')[-1][:-4] for f in file_names]
+        
+    def __len__(self):
+        return len(self.hashes)
+
+    def __getitem__(self, index):
+        hash = self.hashes[index]
+        
+        try:
+            image = io.imread('data/images_alpha/{:s}.png'.format(hash))
+            image = transform.resize(image[:, :, :3], (64, 64), preserve_range=True)
+            image = torch.tensor(image.transpose((2, 0, 1)), dtype=torch.float32) / 255
+        except:
+            print("Error while loading {:s}".format(hash))
+            return ERROR_WHILE_LOADING
+
+        return image, hash    
 
 def clip_image(image):
     WHITE_THRESHOLD = 0.95
@@ -61,7 +77,6 @@ if __name__ == '__main__':
         rotation_file = open('data/rotations_calculated.csv', 'a')
 
     file_names = glob.glob('data/images_alpha/**.png', recursive=True)
-    random.shuffle(file_names)
 
     worker_count = os.cpu_count()
     print("Using {:d} processes.".format(worker_count))
@@ -73,29 +88,37 @@ if __name__ == '__main__':
     def on_complete(*_):
         progress.update()
 
-    for file_name in file_names:
-        hash = file_name.split('/')[-1][:-4]
-        
-        if os.path.exists(get_result_file_name(hash)):
-            progress.update()
-            continue
+    if ROTATE:
+        dataset = ImageDataset(file_names)        
+        data_loader = DataLoader(dataset, batch_size=1, shuffle=True, num_workers=8)
+        with torch.no_grad():
+            for item in data_loader:
+                if item == ERROR_WHILE_LOADING:
+                    progress.update()
+                    continue
+                image, hashes = item
+                hash = hashes[0]
 
-        if ROTATE:
-            try:
-                image = io.imread(file_name)
-                angle = get_rotation_angle(image[:, :, :3])
+                if os.path.exists(get_result_file_name(hash)):
+                    progress.update()
+                    continue
+
+                result = network(image.to(device)).squeeze()
+                angle = -math.degrees(math.atan2(result[0], result[1]))
                 rotation_file.write('{:s},{:f}\n'.format(hash, angle))
                 rotation_file.flush()
-            except KeyboardInterrupt:
-                break
-            except:
-                print(("Error while loading {:s}".format(file_name)))
+
+                pool.apply_async(handle_image, args=(hash, angle), callback=on_complete)
+    else:
+        random.shuffle(file_names)
+        for file_name in file_names:
+            hash = file_name.split('/')[-1][:-4]
+            
+            if os.path.exists(get_result_file_name(hash)):
                 progress.update()
                 continue
-        else:
-            angle = None
 
-        pool.apply_async(handle_image, args=(hash, angle), callback=on_complete)
+            pool.apply_async(handle_image, args=(hash, None), callback=on_complete)
 
     pool.close()
     pool.join()
