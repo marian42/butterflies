@@ -111,5 +111,5 @@ final_depth_quads.save()
 
 result['names'] = strings
 json_string = json.dumps(result)
-with open('data/meta.json', 'w') as file:
+with open('server/meta.json', 'w') as file:
     file.write(json_string)

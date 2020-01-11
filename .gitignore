@@ -1,5 +1,7 @@
 
 data/
+server/**/*.jpg
+server/**/*.json
 
 __pycache__/
 
