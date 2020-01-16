@@ -107,6 +107,7 @@ if __name__ == '__main__':
 
     for item in data_loader:
         if item == SKIP_ITEM:
+            progress.update()
             continue
 
         image, result_file_name = item
