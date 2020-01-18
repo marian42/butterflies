@@ -6,3 +6,4 @@ server/**/*.json
 __pycache__/
 
 .vscode/
+trained_models/checkpoints/
