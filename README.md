@@ -12,7 +12,7 @@ Pre-trained models for all three neural networks are included.
 ## Usage
 
 This section explains how to recreate the visualization on your machine.
-You need a GPU with at least 8 GB of VRAM and ~600 GB of disk space.
+You need a GPU with at least 8 GB of VRAM and ~650 GB of disk space.
 The full dataset contains 716,000 images.
 You can use less disk space if you use a subset of the dataset, as explained below.
 
@@ -39,7 +39,7 @@ You can stop the script and it will resume where you left off.
 6. Run `create_images.py`.
 This part removes the backgrounds and creates images with an alpha channel using the U-Net that classifies every pixel as background or foreground.
 This will create square PNG images of varying sizes in the `data/images_alpha` directory of just the butterfly for each original image.
-The script takes ~26 hours for the full dataset and will use in ~150 GB of disk space used.
+The script takes ~24 hours for the full dataset and will use ~160 GB of disk space.
 You can stop and resume this script.
 
 7. Optional: Train the rotation network. TODO
@@ -59,7 +59,7 @@ You can run `test_autoencoder.py` to create example pairs of input and reconstru
 Stop the test script after some images have been created.
 
 10. Run `create_latent_codes.py`.
-This calculates latent codes for all images in the dataset.
+This calculates latent codes for all images in the dataset using the autoencoder.
 
 11. Run `create_tsne.py`.
 This calculates the t-SNE embedding.
@@ -73,7 +73,7 @@ This creates the leaflet map tiles for the visualization.
 14. Run `create_json.py`.
 This creates JSON files for the metadata that will be displayed in the web app.
 
-15. The files for the web app are in the server directory.
+15. The files for the web app are in the `server` directory.
 You can test the web app by going in to the server directory 
 and running `python3 -m http.server`.
 Go to the address of the server (i.e. [http://0.0.0.0:8000/](http://0.0.0.0:8000/)) to test the web app.
