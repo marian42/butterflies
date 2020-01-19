@@ -46,9 +46,35 @@
                 width: 450px;
             }
 
-            .leaflet-popup-content img {
+            .rot0, .rot2 {
                 max-width: 450px;
-                min-height: 300px;
+                max-height: 300px;
+            }
+
+            .rot1, .rot3 {
+                max-height: 450px;
+                max-width: 300px;
+            }
+
+            .rot1 {
+                transform: rotate(90deg) translateY(-100%);
+                transform-origin: top left;
+            }
+
+            .rot2 {
+                transform: rotate(180deg);
+            }
+
+            .rot3 {
+                transform: translateX(-100%) rotate(-90deg);
+                transform-origin: top right;
+            }
+
+            .imageContainer {
+                width: 100%;
+                height: 300px;
+                display: block;
+                overflow: hidden;
             }
 
             .leaflet-popup-content h1 a {
@@ -137,7 +163,7 @@
                 }
                 var result = '<h1><a href="https://data.nhm.ac.uk/object/' + item.occId + '">' + properties[6] + '</a></h1>';
                 var imageUrl = 'https://www.nhm.ac.uk/services/media-store/asset/' + item.image + '/contents/';
-                result += '<a href="' + imageUrl + 'preview"><img src="' + imageUrl + 'thumbnail"></a>';
+                result += '<a href="' + imageUrl + 'preview" class="imageContainer"><img src="' + imageUrl + 'thumbnail" class="rot' + (item.rot !== undefined ? item.rot : 0) + '"></a>';
                 result += '<table>';
                 result += '<tr><td class="key">Classification:</td><td>';
                 result += '<span class="classification" title="Class">Insecta</span>&nbsp;';

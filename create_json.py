@@ -3,11 +3,17 @@ import math
 import numpy as np
 import metadata
 from config import *
+import csv
 
 butterflies_by_image_id = {i.image_id: i for i in metadata.load()}
 
 strings = []
 name_ids = {}
+
+rotation_file = open('data/rotations_calculated.csv', 'r')
+reader = csv.reader(rotation_file)
+rotations = {row[0]: float(row[1]) for row in reader}
+rotation_file.close()
 
 def get_name_id(value):
     if value not in name_ids:
@@ -23,6 +29,11 @@ def create_json_dict(item, x, y):
         'image': item.image_id,
         'properties': [get_name_id(p) for p in (item.family, item.genus, item.species, item.subspecies, item.sex, item.country, item.pretty_name)]
     }
+
+    if image_id in rotations:
+        rotation = int(-rotations[item.image_id] / 90 + 4.25) % 4
+        if rotation != 0:
+            result['rot'] = rotation
 
     if item.latitude != '':
         result['lat'] = float(item.latitude)
