@@ -155,11 +155,23 @@
                 popupAnchor: [0, -ICON_HEIGHT / 2 * 0.6]
             });
 
+            function decompressName(value) {
+                if (Array.isArray(value)) {
+                    result = '';
+                    for (let index of value) {
+                        result += names[index] + ' ';
+                    }
+                    return result.trim();
+                } else {
+                    return names[value];
+                }
+            }
+
             function createPopup(marker) {
                 var item = marker.item;
                 var properties = [];
-                for (let index of item.properties) {
-                    properties.push(names[index]);
+                for (let compressedName of item.properties) {
+                    properties.push(decompressName(compressedName));
                 }
                 var result = '<h1><a href="https://data.nhm.ac.uk/object/' + item.occId + '">' + properties[6] + '</a></h1>';
                 var imageUrl = 'https://www.nhm.ac.uk/services/media-store/asset/' + item.image + '/contents/';
@@ -214,7 +226,7 @@
                     var latLng = [item.y, item.x];
                     var marker = L.marker(latLng, {
                         icon: icon,
-                        alt: names[item.properties[6]]
+                        alt: decompressName(item.properties[6])
                     });
                     marker.item = item;
                     item.marker = marker;

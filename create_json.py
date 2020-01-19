@@ -4,6 +4,7 @@ import numpy as np
 import metadata
 from config import *
 import csv
+from tqdm import tqdm
 
 butterflies_by_image_id = {i.image_id: i for i in metadata.load()}
 
@@ -16,6 +17,9 @@ rotations = {row[0]: float(row[1]) for row in reader}
 rotation_file.close()
 
 def get_name_id(value):
+    if ' ' in value:
+        return [get_name_id(word) for word in value.split(' ')]
+
     if value not in name_ids:
         name_ids[value] = len(strings)
         strings.append(value)
@@ -89,7 +93,7 @@ for depth_str in data:
     depth = int(depth_str)
     quads = DataQuads(depth)
     
-    for item in items:
+    for item in tqdm(items, desc='Depth {:d}'.format(depth)):
         x, y, image_id = item['x'], -item['y'], item['image']
 
         if image_id not in butterflies_by_image_id:
@@ -110,7 +114,7 @@ final_depth = max(int(d) for d in data.keys()) + 1
 
 final_depth_quads = DataQuads(final_depth)
 
-for i in range(codes.shape[0]):
+for i in tqdm(range(codes.shape[0]), desc='Depth {:d}'.format(final_depth)):
     x, y, image_id = codes[i, 0], -codes[i, 1], dataset.hashes[i]
         
     if image_id not in butterflies_by_image_id:
