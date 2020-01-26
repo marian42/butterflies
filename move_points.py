@@ -39,6 +39,7 @@ def move_mutiple(points, radius=RADIUS, steps=10000):
             i += 1
         except KeyboardInterrupt:
             print("Stopping after {:d} iterations.".format(i))
+            break
     return points
 
 codes = move_mutiple(codes)
