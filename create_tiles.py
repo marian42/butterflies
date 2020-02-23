@@ -104,6 +104,9 @@ def kmeans(points, points_latent_codes, n):
     result_indices = []
     for i in range(n):
         cluster_indices = np.nonzero(kmeans_clusters == i)[0]
+        if cluster_indices.shape[0] == 0:
+            # k-Means creates empty clusters when the dataset contains less than n *distinct* points, but more than n *total* points (due to duplicates)
+            return range(n), points[:n, :]
         dist = np.linalg.norm(points_latent_codes[cluster_indices] - np.mean(points_latent_codes[cluster_indices], axis=0), axis=1)
         result_indices.append(cluster_indices[np.argmin(dist)])
     return result_indices, kmeans.cluster_centers_
@@ -111,7 +114,6 @@ def kmeans(points, points_latent_codes, n):
 def get_kmeans(count, subdivisions):
     if subdivisions == 1:
         return kmeans(codes, latent_codes, count)
-        return np.array(list(), dtype=int)
     
     result_indices = []
     result_points = []
