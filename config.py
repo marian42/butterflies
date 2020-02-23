@@ -2,7 +2,7 @@
 TILE_SIZE = 256
 IMAGE_SIZE = 128 # also ICON_WIDTH in index.html
 
-TILE_DEPTH = 8
+TILE_DEPTH = 9
 
 DEPTH_OFFSET = 8
 
