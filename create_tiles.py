@@ -12,6 +12,7 @@ import math
 import json
 import csv
 from config import *
+import random
 
 latent_codes = np.load('data/latent_codes.npy')
 codes = np.load('data/latent_codes_embedded_moved.npy')
@@ -161,11 +162,19 @@ for depth in range(TILE_DEPTH, -4, -1):
     def on_complete(*_):
         progress.update()
 
+    tile_addresses = []
+
     for x in range(math.floor(-2**depth), math.ceil(2**depth)):
         tile_directory = os.path.dirname(TILE_FILE_FORMAT.format(depth + DEPTH_OFFSET, x, 0))
         if not os.path.exists(tile_directory):
             os.makedirs(tile_directory)
         for y in range(math.floor(-2**depth), math.ceil(2**depth)):
-            pool.apply_async(try_create_tile, args=(depth, x, y), callback=on_complete)
+            tile_addresses.append((x, y))
+
+    random.shuffle(tile_addresses)
+
+    for x, y in tile_addresses:
+        pool.apply_async(try_create_tile, args=(depth, x, y), callback=on_complete)
+    
     pool.close()
     pool.join()
