@@ -14,19 +14,7 @@ import csv
 from config import *
 import random
 
-latent_codes = np.load('data/latent_codes.npy')
-codes = np.load('data/latent_codes_embedded_moved.npy')
 
-from image_loader import ImageDataset
-dataset = ImageDataset()
-
-codes_by_depth = []
-hashes_by_depth = []
-
-rotation_file = open('data/rotations_calculated.csv', 'r')
-reader = csv.reader(rotation_file)
-rotations = {row[0]: float(row[1]) for row in reader}
-rotation_file.close()
 
 def create_tile(depth, x, y):
     tile_file_name = TILE_FILE_FORMAT.format(depth + DEPTH_OFFSET, x, y)
@@ -112,69 +100,104 @@ def kmeans(points, points_latent_codes, n):
         result_indices.append(cluster_indices[np.argmin(dist)])
     return result_indices, kmeans.cluster_centers_
 
-def get_kmeans(count, subdivisions):
-    if subdivisions == 1:
-        return kmeans(codes, latent_codes, count)
-    
-    result_indices = []
-    result_points = []
-    for x in tqdm(range(subdivisions)):
-        for y in range(subdivisions):
-            x_range = (-1 + 2 * x / subdivisions, -1 + 2 * (x + 1) / subdivisions)
-            y_range = (-1 + 2 * y / subdivisions, -1 + 2 * (y + 1) / subdivisions)
 
-            mask = (codes[:, 0] > x_range[0]) \
-                & (codes[:, 0] <= x_range[1]) \
-                & (codes[:, 1] > y_range[0]) \
-                & (codes[:, 1] <= y_range[1])
-            indices = np.nonzero(mask)[0]
-            codes_mask = codes[mask, :]
-            kmeans_indices, kmeans_points = kmeans(codes_mask, latent_codes[mask, :], int(count * indices.shape[0] / codes.shape[0]))
-            for i in kmeans_indices:
-                result_indices.append(indices[i])
-            result_points.append(kmeans_points)
-    
-    return result_indices, np.concatenate(result_points)
+def get_kmeans(depth, x, y):
+    try:
+        number_of_items = 2**(2*depth) * 2
+        subdivisions = max(1, 2**(depth - 2))
 
-for depth in range(TILE_DEPTH):
-    print("Running k-means for depth {:d}.".format(depth))
-    number_of_items = 2**(2*depth) * 2
-    indices, points = get_kmeans(number_of_items, max(1, 2**(depth - 2)))
-    codes_by_depth.append(points)
-    hashes_by_depth.append([dataset.hashes[i] for i in indices])
+        if subdivisions == 1:
+            kmeans_indices, kmeans_points = kmeans(codes, latent_codes, number_of_items)
+            return depth, kmeans_indices, kmeans_points
 
-json_dict = {depth + DEPTH_OFFSET: [{'image': hash, 'x': codes_by_depth[depth][i, 0], 'y': codes_by_depth[depth][i, 1]} for i, hash in enumerate(hashes)] for depth, hashes in enumerate(hashes_by_depth)}
-json_string = json.dumps(json_dict)
-with open('data/clusters.json', 'w') as file:
-    file.write(json_string)
+        x_range = (-1 + 2 * x / subdivisions, -1 + 2 * (x + 1) / subdivisions)
+        y_range = (-1 + 2 * y / subdivisions, -1 + 2 * (y + 1) / subdivisions)
 
+        mask = (codes[:, 0] > x_range[0]) \
+            & (codes[:, 0] <= x_range[1]) \
+            & (codes[:, 1] > y_range[0]) \
+            & (codes[:, 1] <= y_range[1])
+        indices = np.nonzero(mask)[0]
+        codes_mask = codes[mask, :]
+        kmeans_indices, kmeans_points = kmeans(codes_mask, latent_codes[mask, :], int(number_of_items * indices.shape[0] / codes.shape[0]))
 
-codes_by_depth.append(codes)
-hashes_by_depth.append(dataset.hashes)
+        return depth, indices[kmeans_indices], kmeans_points
+    except:
+        traceback.print_exc()
 
-worker_count = os.cpu_count()
-print("Using {:d} processes.".format(worker_count))
+if __name__ == '__main__':
+    latent_codes = np.load('data/latent_codes.npy')
+    codes = np.load('data/latent_codes_embedded_moved.npy')
 
-for depth in range(TILE_DEPTH, -4, -1):
+    from image_loader import ImageDataset
+    dataset = ImageDataset()
+
+    rotation_file = open('data/rotations_calculated.csv', 'r')
+    reader = csv.reader(rotation_file)
+    rotations = {row[0]: float(row[1]) for row in reader}
+    rotation_file.close()
+
+    kmeans_tasks = []
+    for depth in range(TILE_DEPTH):
+        subdivisions = max(1, 2**(depth - 2))
+        for x in range(subdivisions):
+            for y in range(subdivisions):
+                kmeans_tasks.append((depth, x, y))
+
+    worker_count = os.cpu_count()
+    print("Using {:d} processes.".format(worker_count))
     pool = Pool(worker_count)
-    progress = tqdm(total=(2**(2 * depth + 2)), desc='Depth {:d}'.format(depth + DEPTH_OFFSET))
+    progress = tqdm(total=len(kmeans_tasks), desc='Running k-means')
 
-    def on_complete(*_):
+    codes_by_depth = [[] for _ in range(TILE_DEPTH)]
+    hashes_by_depth = [[] for _ in range(TILE_DEPTH)]
+
+    def on_complete(args):
+        depth, kmeans_indices, kmeans_points = args
+        codes_by_depth[depth].append(kmeans_points)
+        for i in kmeans_indices:
+            hashes_by_depth[depth].append(dataset.hashes[i])
         progress.update()
 
-    tile_addresses = []
-
-    for x in range(math.floor(-2**depth), math.ceil(2**depth)):
-        tile_directory = os.path.dirname(TILE_FILE_FORMAT.format(depth + DEPTH_OFFSET, x, 0))
-        if not os.path.exists(tile_directory):
-            os.makedirs(tile_directory)
-        for y in range(math.floor(-2**depth), math.ceil(2**depth)):
-            tile_addresses.append((x, y))
-
-    random.shuffle(tile_addresses)
-
-    for x, y in tile_addresses:
-        pool.apply_async(try_create_tile, args=(depth, x, y), callback=on_complete)
+    for depth, x, y in kmeans_tasks:
+        pool.apply_async(get_kmeans, args=(depth, x, y), callback=on_complete)
     
     pool.close()
     pool.join()
+
+    for depth in range(TILE_DEPTH):
+        codes_by_depth[depth] = np.concatenate(codes_by_depth[depth])
+    
+    json_dict = {depth + DEPTH_OFFSET: [{'image': hash, 'x': codes_by_depth[depth][i, 0], 'y': codes_by_depth[depth][i, 1]} for i, hash in enumerate(hashes)] for depth, hashes in enumerate(hashes_by_depth)}
+    json_string = json.dumps(json_dict)
+    with open('data/clusters.json', 'w') as file:
+        file.write(json_string)
+
+    codes_by_depth.append(codes)
+    hashes_by_depth.append(dataset.hashes)
+    
+    print("Using {:d} processes.".format(worker_count))
+
+    for depth in range(TILE_DEPTH, -4, -1):
+        pool = Pool(worker_count)
+        progress = tqdm(total=(2**(2 * depth + 2)), desc='Depth {:d}'.format(depth + DEPTH_OFFSET))
+
+        def on_complete(*_):
+            progress.update()
+
+        tile_addresses = []
+
+        for x in range(math.floor(-2**depth), math.ceil(2**depth)):
+            tile_directory = os.path.dirname(TILE_FILE_FORMAT.format(depth + DEPTH_OFFSET, x, 0))
+            if not os.path.exists(tile_directory):
+                os.makedirs(tile_directory)
+            for y in range(math.floor(-2**depth), math.ceil(2**depth)):
+                tile_addresses.append((x, y))
+
+        random.shuffle(tile_addresses)
+
+        for x, y in tile_addresses:
+            pool.apply_async(try_create_tile, args=(depth, x, y), callback=on_complete)
+        
+        pool.close()
+        pool.join()
