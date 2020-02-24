@@ -5,6 +5,7 @@ import metadata
 from config import *
 import csv
 from tqdm import tqdm
+import os
 
 butterflies_by_image_id = {i.image_id: i for i in metadata.load()}
 
@@ -84,6 +85,9 @@ class DataQuads():
             json_string = json.dumps(dataquad_files[(file_x, file_y)])
             with open(META_DATA_FORMAT.format(self.depth, file_x, file_y), 'w') as file:
                 file.write(json_string)
+
+if not os.path.exists('server/meta'):
+    os.makedirs('server/meta')
 
 data = json.load(open('data/clusters.json', 'r'))
 
