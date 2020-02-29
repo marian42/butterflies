@@ -126,7 +126,7 @@ if __name__ == '__main__':
             cluster_masks[cluster_label] = mask
         else:
             remainder.append(mask)
-    if any(remainder):
+    if len(remainder) > 0:
         cluster_masks[-1] = np.concatenate(remainder)
     
     worker_count = os.cpu_count()
