@@ -68,6 +68,16 @@ def move_points(points, verbose=False, max_iter=1000):
             if finalizing_steps_left == 0:
                 break
 
+def wiggle_duplicates(points):
+    while True:
+        distances, indices = KDTree(points).query(points, k=2, return_distance=True)
+        mask = distances[:, 1] == 0
+        indices = indices[mask, 1]
+        if indices.shape[0] == 0:
+            return
+        print("Found {:d} duplicates.".format(indices.shape[0]))
+        points[indices, :] += np.random.normal(scale=1e-9, size=(indices.shape[0], 2))
+
 def get_violating_range(points, range=8):
     distances, _ = KDTree(points).query(points, k=2, return_distance=True)
     distances = distances[:, 1]
@@ -95,6 +105,8 @@ if __name__ == '__main__':
     max_value = np.max(points, axis=0)
     points -= (max_value + min_value) / 2
     points /= np.max(points, axis=0)
+
+    wiggle_duplicates(points)
 
     move_points(points, verbose=True, max_iter=40)
 
