@@ -83,8 +83,10 @@ class DecoderBlock(nn.Module):
         return x
 
 class Autoencoder(nn.Module):
-    def __init__(self):
+    def __init__(self, is_variational = True):
         super(Autoencoder, self).__init__()
+
+        self.is_variational = is_variational
 
         self.encoder = nn.Sequential(
             nn.Conv2d(in_channels = 3, out_channels = 1 * amcm, kernel_size = 3, padding=1),
@@ -105,6 +107,13 @@ class Autoencoder(nn.Module):
             nn.ReLU(inplace=True),
             nn.Linear(LATENT_CODE_SIZE, LATENT_CODE_SIZE),
         )
+
+        if is_variational:
+            self.encoder.add_module('vae-bn', nn.BatchNorm1d(LATENT_CODE_SIZE))
+            self.encoder.add_module('vae-lr', nn.ReLU(inplace=True))
+
+            self.encode_mean = nn.Linear(in_features=LATENT_CODE_SIZE, out_features=LATENT_CODE_SIZE)
+            self.encode_log_variance = nn.Linear(in_features=LATENT_CODE_SIZE, out_features=LATENT_CODE_SIZE)
         
         self.decoder = nn.Sequential(
             nn.Linear(LATENT_CODE_SIZE, LATENT_CODE_SIZE),
@@ -128,8 +137,11 @@ class Autoencoder(nn.Module):
     def encode(self, x, return_mean_and_log_variance = False):
         x = x.reshape((-1, 3, 128, 128))
         x = self.encoder.forward(x)
-        return x
 
+        if not self.is_variational:
+            return x
+            
+        mean = self.encode_mean(x).squeeze()
         
         if self.training or return_mean_and_log_variance:
             log_variance = self.encode_log_variance(x).squeeze()
