@@ -11,6 +11,10 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 from image_loader import ImageDataset
 dataset = ImageDataset(return_hashes=True)
 
+SAMPLE_SIZE = 200
+indices = [int(i / SAMPLE_SIZE * len(dataset)) for i in range(SAMPLE_SIZE)]
+dataset.hashes = [dataset.hashes[i] for i in indices]
+
 data_loader = DataLoader(dataset, batch_size=1, shuffle=True, num_workers=4)
 
 autoencoder = Autoencoder(is_variational=USE_VARIATIONAL_AUTOENCODER)
