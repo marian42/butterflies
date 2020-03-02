@@ -1,30 +1,16 @@
 from itertools import count
-
 import torch
-import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
-
 from tqdm import tqdm
-
-import random
-random.seed(0)
-torch.manual_seed(0)
-
 import numpy as np
-
-import sys
-import time
 import os
-
-from autoencoder import Autoencoder
-
 from collections import deque
 
-VARIATIONAL = True
+from autoencoder import Autoencoder
+from config import *
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-AUTOENCODER_FILENAME = 'trained_models/variational_autoencoder.to' if VARIATIONAL else 'trained_models/autoencoder.to'
 
 from image_loader import ImageDataset
 dataset = ImageDataset()
@@ -32,7 +18,7 @@ BATCH_SIZE = 32
 
 data_loader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=4)
 
-autoencoder = Autoencoder(is_variational = VARIATIONAL)
+autoencoder = Autoencoder(is_variational=USE_VARIATIONAL_AUTOENCODER)
 
 if os.path.exists(AUTOENCODER_FILENAME):
     print("Found autoencoder model, resuming training on existing model.")
@@ -61,7 +47,7 @@ def train():
 
             autoencoder.zero_grad()
 
-            if VARIATIONAL:
+            if USE_VARIATIONAL_AUTOENCODER:
                 output, mean, log_variance = autoencoder.forward(sample)
                 kld = kld_loss(mean, log_variance)
             else:
