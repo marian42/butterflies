@@ -1,15 +1,12 @@
 import torch
 from torch.utils.data import DataLoader
-
 from tqdm import tqdm
 import numpy as np
 
 from autoencoder import Autoencoder, LATENT_CODE_SIZE
-
-from collections import deque
+from config import *
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-AUTOENCODER_FILENAME = 'trained_models/autoencoder.to'
 
 from image_loader import ImageDataset
 dataset = ImageDataset()
@@ -17,8 +14,9 @@ BATCH_SIZE = 256
 
 data_loader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4)
 
-autoencoder = Autoencoder()
+autoencoder = Autoencoder(is_variational=USE_VARIATIONAL_AUTOENCODER)
 autoencoder.load_state_dict(torch.load(AUTOENCODER_FILENAME))
+autoencoder.eval()
 
 latent_codes = np.zeros((len(dataset), LATENT_CODE_SIZE), dtype=np.float32)
 position = 0
