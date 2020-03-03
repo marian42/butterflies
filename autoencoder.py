@@ -21,7 +21,7 @@ class PrintShape(nn.Module):
 
 LATENT_CODE_SIZE = 128
 
-amcm = 8
+amcm = 32
 
 class ResidualBlock(nn.Module):
     def __init__(self, channels):
@@ -95,10 +95,10 @@ class Autoencoder(nn.Module):
 
             EncoderBlock(1 * amcm, 1 * amcm), # 128 -> 64
             EncoderBlock(1 * amcm), # 64 -> 32
-            EncoderBlock(2 * amcm), # 32 -> 16
-            EncoderBlock(4 * amcm), # 16 -> 8
-            EncoderBlock(8 * amcm), # 8 -> 4
-            EncoderBlock(16 * amcm, LATENT_CODE_SIZE, bottleneck=True), # 4 -> 1
+            EncoderBlock(2 * amcm, 2 * amcm), # 32 -> 16
+            EncoderBlock(2 * amcm), # 16 -> 8
+            EncoderBlock(4 * amcm), # 8 -> 4
+            EncoderBlock(8 * amcm, LATENT_CODE_SIZE, bottleneck=True), # 4 -> 1
 
             Lambda(lambda x: x.reshape(x.shape[0], -1)),
 
@@ -122,10 +122,10 @@ class Autoencoder(nn.Module):
 
             Lambda(lambda x: x.reshape(-1, LATENT_CODE_SIZE, 1, 1)),
 
-            DecoderBlock(LATENT_CODE_SIZE, 16 * amcm, bottleneck=True), # 1 -> 4
-            DecoderBlock(16 * amcm), # 4 -> 8
-            DecoderBlock(8 * amcm), # 8 -> 16
-            DecoderBlock(4 * amcm), # 16 -> 32
+            DecoderBlock(LATENT_CODE_SIZE, 8 * amcm, bottleneck=True), # 1 -> 4
+            DecoderBlock(8 * amcm), # 4 -> 8
+            DecoderBlock(4 * amcm), # 8 -> 16
+            DecoderBlock(2 * amcm, 2 * amcm), # 16 -> 32
             DecoderBlock(2 * amcm), # 32 -> 64
             DecoderBlock(1 * amcm, 1 * amcm), # 32 -> 128
 

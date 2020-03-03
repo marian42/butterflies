@@ -58,7 +58,7 @@ def train():
             error_history.append(reconstruction_loss.item())
             kld_history.append(kld.item())
 
-            loss = reconstruction_loss + kld
+            loss = reconstruction_loss + kld * 0.01
             
             loss.backward()
             optimizer.step()
