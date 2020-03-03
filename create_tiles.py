@@ -14,26 +14,31 @@ import csv
 from config import *
 import random
 
-
-
 def create_tile(depth, x, y):
-    tile_file_name = TILE_FILE_FORMAT.format(depth + DEPTH_OFFSET, x, y)
-    if os.path.exists(tile_file_name):
+    tile_file_name = TILE_FILE_FORMAT.format('', depth + DEPTH_OFFSET, x, y)
+    tile_file_name_hq = TILE_FILE_FORMAT.format('@2x', depth + DEPTH_OFFSET, x, y)
+    if os.path.exists(tile_file_name) and (not CREATE_HQ_TILES or os.path.exists(CREATE_HQ_TILES)):
         return
     
     tile = Image.new("RGB", (TILE_SIZE, TILE_SIZE), (255, 255, 255))
+    tile_hq = Image.new("RGB", (TILE_SIZE * 2, TILE_SIZE * 2), (255, 255, 255))
     is_empty = True
 
     if depth < TILE_DEPTH:
-        for a in range(2):
-            for b in range(2):
-                old_tile_file_name = TILE_FILE_FORMAT.format(depth + 1 + DEPTH_OFFSET, x * 2 + a, y * 2 + b)
-                if not os.path.exists(old_tile_file_name):
-                    continue
+        for a, b in ((0, 0), (0, 1), (1, 0), (1, 1)):
+            old_tile_file_name = TILE_FILE_FORMAT.format('', depth + 1 + DEPTH_OFFSET, x * 2 + a, y * 2 + b)
+            if os.path.exists(old_tile_file_name):
                 image = Image.open(old_tile_file_name)
                 image = image.resize((TILE_SIZE // 2, TILE_SIZE // 2), resample=Image.BICUBIC)
                 tile.paste(image, (a * TILE_SIZE // 2, b * TILE_SIZE // 2))
                 is_empty = False
+
+            old_tile_file_name_hq = TILE_FILE_FORMAT.format('@2x', depth + 1 + DEPTH_OFFSET, x * 2 + a, y * 2 + b)
+            if CREATE_HQ_TILES and os.path.exists(old_tile_file_name_hq):
+                image = Image.open(old_tile_file_name)
+                image = image.resize((TILE_SIZE, TILE_SIZE), resample=Image.BICUBIC)
+                tile_hq.paste(image, (a * TILE_SIZE, b * TILE_SIZE))
+                is_empty = False                
 
     if depth > 1:
         margin = (IMAGE_SIZE / 2 + SHADOW_RADIUS) / TILE_SIZE
@@ -61,21 +66,31 @@ def create_tile(depth, x, y):
                 angle = rotations[image_id]
                 image_file_name = 'data/images_alpha/{:s}.png'.format(image_id)
                 image_original = Image.open(image_file_name)
-                image = image_original.rotate(angle, resample=Image.BICUBIC, expand=True)
-                size = int(IMAGE_SIZE * image.size[0] / image_original.size[0])
-                image = image.resize((size, size), resample=Image.BICUBIC)
+                image_rotated = image_original.rotate(angle, resample=Image.BICUBIC, expand=True)
+                size = int(IMAGE_SIZE * image_rotated.size[0] / image_original.size[0])
+                image = image_rotated.resize((size, size), resample=Image.BICUBIC)
+                
+                image_hq = image_rotated.resize((size * 2, size * 2), resample=Image.BICUBIC)
+                shadow_mask_hq = Image.new("L", (size * 2 + 2 * SHADOW_RADIUS * 2, size * 2 + 2 * SHADOW_RADIUS * 2), 0)
+                shadow_mask_hq.paste(image_hq.split()[-1], (SHADOW_RADIUS * 2, SHADOW_RADIUS * 2))
+                shadow_mask_hq = shadow_mask_hq.filter(ImageFilter.GaussianBlur(radius=SHADOW_RADIUS))
+                enhancer = ImageEnhance.Brightness(shadow_mask_hq)
+                shadow_mask_hq = enhancer.enhance(SHADOW_VALUE)
 
-                shadow_mask = Image.new("L", (size + 2 * SHADOW_RADIUS, size + 2 * SHADOW_RADIUS), 0)
-                shadow_mask.paste(image.split()[-1], (SHADOW_RADIUS, SHADOW_RADIUS))
-                shadow_mask = shadow_mask.filter(ImageFilter.GaussianBlur(radius=SHADOW_RADIUS // 2))
-                enhancer = ImageEnhance.Brightness(shadow_mask)
-                shadow_mask = enhancer.enhance(SHADOW_VALUE)
+                shadow_mask = shadow_mask_hq.resize((shadow_mask_hq.size[0] // 2, shadow_mask_hq.size[1] // 2))
 
-                tile.paste((0, 0, 0), (int(positions[i, 0] - size // 2 - SHADOW_RADIUS), int(positions[i, 1] - size // 2 - SHADOW_RADIUS)), mask=shadow_mask)
-                tile.paste(image, (int(positions[i, 0] - size // 2), int(positions[i, 1] - size // 2)), mask=image)
-    
+                tile.paste((0, 0, 0), (int(positions[i, 0] - size / 2 - SHADOW_RADIUS), int(positions[i, 1] - size / 2 - SHADOW_RADIUS)), mask=shadow_mask)
+                tile.paste(image, (int(positions[i, 0] - size / 2), int(positions[i, 1] - size / 2)), mask=image)
+
+                if CREATE_HQ_TILES:
+                    tile_hq.paste((0, 0, 0), (int(positions[i, 0] * 2 - size - SHADOW_RADIUS * 2), int(positions[i, 1] * 2 - size - SHADOW_RADIUS * 2)), mask=shadow_mask_hq)
+                    tile_hq.paste(image_hq, (int(positions[i, 0] * 2 - size), int(positions[i, 1] * 2 - size)), mask=image_hq)
+
+        
     if not is_empty:
         tile.save(tile_file_name, quality=TILE_IMAGE_QUALITY)
+        if CREATE_HQ_TILES:
+            tile_hq.save(tile_file_name_hq, quality=TILE_IMAGE_QUALITY)
 
 def try_create_tile(*args):
     try:
@@ -188,9 +203,12 @@ if __name__ == '__main__':
         tile_addresses = []
 
         for x in range(math.floor(-2**depth), math.ceil(2**depth)):
-            tile_directory = os.path.dirname(TILE_FILE_FORMAT.format(depth + DEPTH_OFFSET, x, 0))
+            tile_directory = os.path.dirname(TILE_FILE_FORMAT.format('', depth + DEPTH_OFFSET, x, 0))
             if not os.path.exists(tile_directory):
                 os.makedirs(tile_directory)
+            tile_directory_hq = os.path.dirname(TILE_FILE_FORMAT.format('@2x', depth + DEPTH_OFFSET, x, 0))
+            if not os.path.exists(tile_directory_hq):
+                os.makedirs(tile_directory_hq)
             for y in range(math.floor(-2**depth), math.ceil(2**depth)):
                 tile_addresses.append((x, y))
 

@@ -12,7 +12,8 @@ SHADOW_VALUE = 0.8
 ROTATION_NETWORK_RESOLUTION = 64
 
 
-TILE_FILE_FORMAT = 'server/tile/{:d}/{:d}/{:d}.jpg'
+TILE_FILE_FORMAT = 'server/tile{:s}/{:d}/{:d}/{:d}.jpg'
+CREATE_HQ_TILES = True
 
 
 META_DATA_FORMAT = 'server/meta/{:d}_{:d}_{:d}.json'
