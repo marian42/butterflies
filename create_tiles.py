@@ -75,7 +75,7 @@ def create_tile(depth, x, y):
                 tile.paste(image, (int(positions[i, 0] - size // 2), int(positions[i, 1] - size // 2)), mask=image)
     
     if not is_empty:
-        tile.save(tile_file_name)
+        tile.save(tile_file_name, quality=TILE_IMAGE_QUALITY)
 
 def try_create_tile(*args):
     try:

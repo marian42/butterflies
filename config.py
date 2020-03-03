@@ -22,3 +22,5 @@ METADATA_FILE_NAME = 'data/metadata.csv'
 
 USE_VARIATIONAL_AUTOENCODER = True
 AUTOENCODER_FILENAME = 'trained_models/variational_autoencoder.to' if USE_VARIATIONAL_AUTOENCODER else 'trained_models/autoencoder.to'
+
+TILE_IMAGE_QUALITY = 90
