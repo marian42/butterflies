@@ -423,7 +423,7 @@
             var map = L.map('map', {
                 zoomControl: true,
                 minZoom: 5,
-                maxZoom: 17,
+                maxZoom: 18,
                 crs: L.CRS.Simple,
                 zoomControl: false
             });
@@ -433,6 +433,13 @@
                 maxZoom: 17,
                 bounds: [[-1, -1], [1, 1]],
                 attribution: '<a href="http://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a> <a href="https://data.nhm.ac.uk/">The Trustees of the Natural History Museum, London</a> | <a href=/page/imprint/>Imprint</a>'
+            }).addTo(map);
+
+            L.tileLayer('tile@2x/17/{x}/{y}.jpg', {
+                minZoom: 18,
+                maxZoom: 18,
+                tileSize: 512,
+                bounds: [[-1, -1], [1, 1]]
             }).addTo(map);
 
             L.control.zoom({position: 'topright'}).addTo(map);
