@@ -75,7 +75,7 @@ if __name__ == '__main__':
         network.cuda()
         network.eval()
 
-        rotation_file = open('data/rotations_calculated.csv', 'a')
+        rotation_file = open(ROTATIONS_CALCULATED_FILENAME, 'a')
 
     file_names = glob.glob('data/images_alpha/**.png', recursive=True)
 

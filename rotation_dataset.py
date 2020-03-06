@@ -27,7 +27,7 @@ def clip_image(image):
 
 class RotationDataset(Dataset):
     def __init__(self, return_hashes=False):
-        file = open('data/rotations.csv', 'r')
+        file = open(ROTATION_DATA_FILENAME, 'r')
         reader = csv.reader(file)
         
         self.image_ids, self.angles = zip(*tuple(reader))

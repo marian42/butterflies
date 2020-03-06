@@ -3,6 +3,7 @@ from flask import Flask, send_file, request
 import metadata
 import random
 import csv
+from config import *
 
 items = metadata.load()
 
@@ -170,12 +171,12 @@ INDEX_HTML = '''<!DOCTYPE html>
     </body>
 </html>'''
 
-rotation_file = open('data/rotations.csv', 'r')
+rotation_file = open(ROTATION_DATA_FILENAME, 'r')
 reader = csv.reader(rotation_file)
 existing_ids = set(row[0] for row in reader)
 rotation_file.close
 
-rotation_file = open('data/rotations.csv', 'a')
+rotation_file = open(ROTATION_DATA_FILENAME, 'a')
 
 @app.route('/')
 def index():

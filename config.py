@@ -20,6 +20,8 @@ META_DATA_FORMAT = 'server/meta/{:d}_{:d}_{:d}.json'
 DATAQUADS_PER_FILE = 16 # also in index.html
 
 METADATA_FILE_NAME = 'data/metadata.csv'
+ROTATION_DATA_FILENAME = 'data/rotations.csv'
+ROTATIONS_CALCULATED_FILENAME = 'data/rotations_calculated.csv'
 
 USE_VARIATIONAL_AUTOENCODER = True
 AUTOENCODER_FILENAME = 'trained_models/variational_autoencoder.to' if USE_VARIATIONAL_AUTOENCODER else 'trained_models/autoencoder.to'

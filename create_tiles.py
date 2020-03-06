@@ -147,7 +147,7 @@ if __name__ == '__main__':
     from image_loader import ImageDataset
     dataset = ImageDataset()
 
-    rotation_file = open('data/rotations_calculated.csv', 'r')
+    rotation_file = open(ROTATIONS_CALCULATED_FILENAME, 'r')
     reader = csv.reader(rotation_file)
     rotations = {row[0]: float(row[1]) for row in reader}
     rotation_file.close()

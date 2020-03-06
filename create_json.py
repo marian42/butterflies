@@ -12,7 +12,7 @@ butterflies_by_image_id = {i.image_id: i for i in metadata.load()}
 strings = []
 name_ids = {}
 
-rotation_file = open('data/rotations_calculated.csv', 'r')
+rotation_file = open(ROTATIONS_CALCULATED_FILENAME, 'r')
 reader = csv.reader(rotation_file)
 rotations = {row[0]: float(row[1]) for row in reader}
 rotation_file.close()
