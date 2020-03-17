@@ -108,7 +108,7 @@ if __name__ == '__main__':
 
     wiggle_duplicates(points)
 
-    move_points(points, verbose=True, max_iter=40)
+    move_points(points, verbose=True, max_iter=80)
 
     parallel_working_mask = get_violating_range(points, range=8)
     parallel_working_set = points[parallel_working_mask, :]
@@ -154,7 +154,7 @@ if __name__ == '__main__':
 
     points[parallel_working_mask] = parallel_working_set
 
-    move_points(points, verbose=True, max_iter=21)
+    move_points(points, verbose=True, max_iter=80)
     
     OUTPUT_FILENAME = 'data/latent_codes_embedded_moved.npy'
     min_value = np.min(points, axis=0)
