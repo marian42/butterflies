@@ -147,12 +147,20 @@
             const ICON_HEIGHT = 96;
 
             const DATAQUADS_PER_FILE = 16;
+            const TILE_DEPTH = 17;
 
             const icon = L.divIcon({
                 className: 'butterfly',
                 iconSize: [ICON_WIDTH, ICON_HEIGHT],
                 iconAnchor: [ICON_WIDTH / 2, ICON_HEIGHT / 2],
                 popupAnchor: [0, -ICON_HEIGHT / 2 * 0.6]
+            });
+
+            const iconDoubleSize = L.divIcon({
+                className: 'butterfly',
+                iconSize: [ICON_WIDTH * 2, ICON_HEIGHT * 2],
+                iconAnchor: [ICON_WIDTH, ICON_HEIGHT],
+                popupAnchor: [0, -ICON_HEIGHT * 0.6]
             });
 
             function decompressName(value) {
@@ -222,10 +230,11 @@
             }
 
             function createMarkers(items) {
+                var useDoubleSize = map.getZoom() == TILE_DEPTH + 1;
                 for (let item of items) {
                     var latLng = [item.y, item.x];
                     var marker = L.marker(latLng, {
-                        icon: icon,
+                        icon: useDoubleSize ? iconDoubleSize : icon,
                         alt: decompressName(item.properties[6])
                     });
                     marker.item = item;
@@ -245,19 +254,7 @@
                     }
                 }
             }
-
-            function logVisibleQuadsInfo(depth) {
-                var totalQuads = 0;
-                var totalItems = 0;
-                for (var x in visibleQuads.data[depth]) {
-                    for (var y in visibleQuads.data[depth][x]) {
-                        totalQuads++;
-                        totalItems += quads[depth][x][y].length;
-                    }
-                }
-                console.log("Showing " + totalQuads + " quads with " + totalItems + " items.");
-            }
-
+            
             function writeMapLocationToUrl() {
                 if (windowStateLocked) {
                     windowStateLocked = false;
@@ -319,6 +316,8 @@
 
                 if (depth < 13) {
                     return;
+                } else if (depth > TILE_DEPTH) {
+                    depth = TILE_DEPTH;
                 }
 
                 var quadCount = getQuadCount(depth) / DATAQUADS_PER_FILE;
@@ -355,9 +354,9 @@
 
             function updateMarkers() {
                 var depth = map.getZoom();
+                var cappedDepth = Math.min(depth, TILE_DEPTH)
                 
-                var quadsCurrentDepth = quads[depth];
-                var quadCount = getQuadCount(depth);
+                var quadCount = getQuadCount(cappedDepth);
                 var bounds = padBounds(map.getBounds(), ICON_WIDTH / 2, ICON_HEIGHT / 2);
 
                 var xRange = [
@@ -369,8 +368,34 @@
                     Math.floor(bounds.getNorth() * quadCount)
                 ];
 
+                // Hide old quads
+                var hidden = [];
+                for (var d in visibleQuads.data) {
+                    if (d == depth) {
+                        continue;
+                    }
+                    for (var x in visibleQuads.data[d]) {
+                        for (var y in visibleQuads.data[d][x]) {
+                            hideMarkers(quads[Math.min(d, TILE_DEPTH)][x][y]);
+                            hidden.push([d, x, y]);
+                        }
+                    }
+                }
+                for (var x in visibleQuads.data[depth]) {
+                    for (var y in visibleQuads.data[depth][x]) {
+                        if (x < xRange[0] || x > xRange[1] || y < yRange[0] || y > yRange[1]) {
+                            hideMarkers(quads[Math.min(depth, TILE_DEPTH)][x][y]);
+                            hidden.push([depth, x, y]);
+                        }
+                    }
+                }
+                for (let quadAddress of hidden) {
+                    visibleQuads.update(quadAddress[0], quadAddress[1], quadAddress[2], false);
+                }
+
                 // Show new quads
-                if (depth in quads && depth >= 10) {
+                var quadsCurrentDepth = quads[cappedDepth];
+                if (cappedDepth in quads && depth >= 10) {
                     for (var x = xRange[0]; x <= xRange[1]; x++) {
                         if (!(x in quadsCurrentDepth)) {
                             continue;
@@ -386,32 +411,6 @@
                     }
                 }
 
-                // Hide old quads
-                var hidden = [];
-                for (var d in visibleQuads.data) {
-                    if (d == depth) {
-                        continue;
-                    }
-                    for (var x in visibleQuads.data[d]) {
-                        for (var y in visibleQuads.data[d][x]) {
-                            hideMarkers(quads[d][x][y]);
-                            hidden.push([d, x, y]);
-                        }
-                    }
-                }
-                for (var x in visibleQuads.data[depth]) {
-                    for (var y in visibleQuads.data[depth][x]) {
-                        if (x < xRange[0] || x > xRange[1] || y < yRange[0] || y > yRange[1]) {
-                            hideMarkers(quads[depth][x][y]);
-                            hidden.push([depth, x, y]);
-                        }
-                    }
-                }
-                for (let quadAddress of hidden) {
-                    visibleQuads.update(quadAddress[0], quadAddress[1], quadAddress[2], false);
-                }
-
-                logVisibleQuadsInfo(depth);
                 checkMetadataQuads();
                 writeMapLocationToUrl();
             }
@@ -423,21 +422,21 @@
             var map = L.map('map', {
                 zoomControl: true,
                 minZoom: 5,
-                maxZoom: 18,
+                maxZoom: TILE_DEPTH + 1,
                 crs: L.CRS.Simple,
                 zoomControl: false
             });
 
             L.tileLayer('tile{r}/{z}/{x}/{y}.jpg', {
                 minZoom: 5,
-                maxZoom: 17,
+                maxZoom: TILE_DEPTH,
                 bounds: [[-1, -1], [1, 1]],
                 attribution: '<a href="http://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a> <a href="https://data.nhm.ac.uk/">The Trustees of the Natural History Museum, London</a> | <a href=/page/imprint/>Imprint</a>'
             }).addTo(map);
 
-            L.tileLayer('tile@2x/17/{x}/{y}.jpg', {
-                minZoom: 18,
-                maxZoom: 18,
+            L.tileLayer('tile@2x/' + TILE_DEPTH + '/{x}/{y}.jpg', {
+                minZoom: TILE_DEPTH + 1,
+                maxZoom: TILE_DEPTH + 1,
                 tileSize: 512,
                 bounds: [[-1, -1], [1, 1]]
             }).addTo(map);
