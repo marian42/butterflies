@@ -46,6 +46,10 @@
                 width: 450px;
             }
 
+            .leaflet-bar {
+                user-select: none;
+            }
+
             .rot0, .rot2 {
                 max-width: 450px;
                 max-height: 300px;
@@ -430,6 +434,8 @@
             L.tileLayer('tile{r}/{z}/{x}/{y}.jpg', {
                 minZoom: 5,
                 maxZoom: TILE_DEPTH,
+                minNativeZoom: 5,
+                maxNativeZoom: TILE_DEPTH,
                 bounds: [[-1, -1], [1, 1]],
                 attribution: '<a href="http://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a> <a href="https://data.nhm.ac.uk/">The Trustees of the Natural History Museum, London</a> | <a href=/page/imprint/>Imprint</a>'
             }).addTo(map);
@@ -437,6 +443,8 @@
             L.tileLayer('tile@2x/' + TILE_DEPTH + '/{x}/{y}.jpg', {
                 minZoom: TILE_DEPTH + 1,
                 maxZoom: TILE_DEPTH + 1,
+                maxNativeZoom: TILE_DEPTH + 1,
+                minNativeZoom: TILE_DEPTH - 1,
                 tileSize: 512,
                 bounds: [[-1, -1], [1, 1]]
             }).addTo(map);
