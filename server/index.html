@@ -260,6 +260,16 @@
                 }
             }
 
+            function setQualityLabel(event, id, quality) {
+                fetch("http://0.0.0.0:5000/save_quality?id=" + id + "&quality=" + quality, {method: 'POST'})
+                .then(function(response) {
+                    if (response.status == 200) {
+                        console.log("Saved quality of " + id);
+                    }
+                });
+                event.preventDefault();
+            }
+
             function createPopup(marker) {
                 var item = marker.item;
                 var properties = [];
@@ -310,6 +320,9 @@
                 result += '<a href="https://data.nhm.ac.uk/object/' + item.occId + '">NHM Data Portal</a>';
                 if (document.location.href.indexOf('0.0.0.0') != -1) {
                     result += '&nbsp;<a href="http://0.0.0.0:5000/?' + item.image + '" target="_blank">Fix rotation</a>';
+                    result += '&nbsp;<a href="" onclick="setQualityLabel(event, \'' + item.image + '\', 0)">Bad quality</a>';
+                    result += '&nbsp;<a href="" onclick="setQualityLabel(event, \'' + item.image + '\', 1)">Partial quality</a>';
+                    result += '&nbsp;<a href="" onclick="setQualityLabel(event, \'' + item.image + '\', 2)">Good quality</a>';
                 } 
                 return result;
             }

@@ -21,6 +21,7 @@ DATAQUADS_PER_FILE = 16 # also in index.html
 
 METADATA_FILE_NAME = 'data/metadata.csv'
 ROTATION_DATA_FILENAME = 'data/rotations.csv'
+QUALITY_DATA_FILENAME = 'data/quality.csv'
 ROTATIONS_CALCULATED_FILENAME = 'data/rotations_calculated.csv'
 
 USE_VARIATIONAL_AUTOENCODER = True

@@ -171,12 +171,25 @@ INDEX_HTML = '''<!DOCTYPE html>
     </body>
 </html>'''
 
-rotation_file = open(ROTATION_DATA_FILENAME, 'r')
-reader = csv.reader(rotation_file)
-existing_ids = set(row[0] for row in reader)
-rotation_file.close
+if os.path.exists(ROTATION_DATA_FILENAME):
+    rotation_file = open(ROTATION_DATA_FILENAME, 'r')
+    reader = csv.reader(rotation_file)
+    existing_ids_rotation = set(row[0] for row in reader)
+    rotation_file.close
+else:
+    existing_ids_rotaiton = set()
 
 rotation_file = open(ROTATION_DATA_FILENAME, 'a')
+
+if os.path.exists(QUALITY_DATA_FILENAME):
+    quality_file = open(QUALITY_DATA_FILENAME, 'r')
+    reader = csv.reader(quality_file)
+    existing_ids_quality = set(row[0] for row in reader)
+    quality_file.close
+else:
+    existing_ids_quality = set()
+
+quality_file = open(QUALITY_DATA_FILENAME, 'a')
 
 @app.route('/')
 def index():
@@ -193,20 +206,34 @@ def get_image(id):
 def get_id():
     while True:
         item = random.choice(items)
-        if os.path.exists(IMAGE_FILE_FORMAT.format(item.image_id)) or item.image_id in existing_ids:
+        if os.path.exists(IMAGE_FILE_FORMAT.format(item.image_id)) and item.image_id not in existing_ids_rotation:
             return item.image_id
 
 
 @app.route('/save_rotation', methods=['POST'])
 def save_rotation():
     image_id = request.args.get('id')
-    if image_id in existing_ids:
+    if image_id in existing_ids_rotation:
         print("Skipping duplicate id.")
         return 'ok', 200
-    existing_ids.add(image_id)        
+    existing_ids_rotation.add(image_id)
     rotation = request.args.get('rotation')
     rotation_file.write('{:s},{:s}\n'.format(image_id, rotation))
     rotation_file.flush()
+    return 'ok', 200
+
+@app.route('/save_quality', methods=['POST'])
+def save_quality():
+    image_id = request.args.get('id')
+    print(image_id)
+    if image_id in existing_ids_quality:
+        print("Skipping duplicate id.")
+        return 'ok', 200
+    existing_ids_quality.add(image_id)
+    quality = request.args.get('quality')
+    print(image_id, quality)
+    quality_file.write('{:s},{:s}\n'.format(image_id, quality))
+    quality_file.flush()
     return 'ok', 200
 
 app.run(host='0.0.0.0')
