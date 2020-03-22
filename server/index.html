@@ -3,7 +3,7 @@
     <head>
         <meta charset="utf-8">
         <title>Butterflies</title>
-        <meta name="description" content="An interactive visualization of 150.000 butterflies from the Natural History Museum in London, arranged by visual similarity using t-SNE and deep neural networks.">
+        <meta name="description" content="An interactive visualization of 750000 butterflies from the Natural History Museum in London, arranged by visual similarity using t-SNE and deep neural networks.">
         <link rel="shortcut icon" type="image/png" href="favicon.png"/>
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
@@ -18,6 +18,30 @@
 
     <body>
         <div id="map"></div>
+
+        <div id="infopopup" style="display:none;">
+            <div class="scroll-container">
+                <h1>Visualization of 750000 butterflies from the Natural History Museum</h1>
+                
+                <div>
+                    This is an interactive data visualization project that shows the collection of <a href="https://en.wikipedia.org/wiki/Lepidoptera">lepidoptera</a> of the <a href="https://www.nhm.ac.uk/">Natural History Museum in London</a>.
+                    It uses machine learning methods to process the data, including deep neural networks and <a href="https://en.wikipedia.org/wiki/T-distributed_stochastic_neighbor_embedding">t-SNE</a> to arrange the specimens by visual similarity.
+                    <a href="https://marian42.de/article/butterflies/">Click here to read a detailed explanation of the data preparation process</a>.
+                </div>
+                
+                <div>
+                    The <a href="https://github.com/marian42/butterflies">source code for this project is available on Github</a>.
+                    This project was created by <a href="https://marian42.de/">Marian Kleineberg</a>. Follow me on <a href="https://twitter.com/marian42_">Twitter</a>.
+                </div>
+
+                <div>
+                    The images of the butterflies are provided by the <a href="https://data.nhm.ac.uk/">Trustees of the Natural History Museum</a> under a <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a> license.
+                    The Natural History Museum cannot warrant the quality or accuracy of the data. This project is not endorsed by, affiliated with, supported by or approved by the Museum.
+                </div>
+            </div>
+
+            <a href="" id="close-popup">close</a>
+        </div>
         
         <style>
             html, body {
@@ -108,6 +132,63 @@
 
             .leaflet-popup-content .classification {
                 display: inline-block;
+            }
+
+            .infobutton {
+                cursor: pointer;
+            }
+            .infobutton::after {
+                content: '?';
+                font: bold 18px 'Lucida Console', Monaco, monospace;
+                position: relative;
+                top: 2px;
+            }
+
+            #infopopup {
+                position: fixed;
+                display: block;
+                background-color: white;
+                z-index: 1000;
+                height:auto;
+                bottom:0;
+                top:0;
+                left:0;
+                right:0;
+                margin: calc(min(80px,8vh)) calc(min(80px,10vw));
+                border: 2px solid rgba(0,0,0,0.2);
+                border-radius: 4px;
+            }
+
+            .scroll-container {
+                position: absolute;
+                display: block;
+                padding: 40px;
+                padding-bottom: 120px;
+                overflow-y: auto;
+                line-height: 1.6em;
+                top: 0px;
+                bottom: 0px;
+            }
+
+            #infopopup .scroll-container div {
+                margin: 20px 0px;
+            }
+
+            #infopopup h1 {
+                line-height: 1.6em;
+            }
+
+            #infopopup #close-popup {
+                position: absolute;
+                display: block;
+                bottom: 0px;
+                left: 0px;
+                right: 0px;
+                width: auto;
+                text-align: center;
+                padding: 20px;
+                margin: 0px 40px;
+                background-color: white;
             }
         </style>
         <script>
@@ -450,6 +531,27 @@
             }).addTo(map);
 
             L.control.zoom({position: 'topright'}).addTo(map);
+
+            L.Control.InfoButton = L.Control.extend({
+                onAdd: function(map) {
+                    var div = L.DomUtil.create('div', 'leaflet-bar');
+                    L.DomUtil.create('a', 'infobutton', div);
+                    return div;
+                }
+            });
+
+            var infoPopup = document.getElementById('infopopup');
+
+            var infoButton = new L.Control.InfoButton({ position: 'topright' }).addTo(map);
+            infoButton._container.addEventListener('click', function(event) {
+                infoPopup.style.display = 'block';
+                event.stopPropagation();
+            });
+            L.DomEvent.disableClickPropagation(infoButton._container);
+            document.getElementById('close-popup').addEventListener('click', function(event) {
+                infoPopup.style.display = 'none';
+                event.preventDefault();
+            });
 
             var windowStateLocked = false;
             var lastUrlHistoryUpdate = Date.now();
