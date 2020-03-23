@@ -43,7 +43,12 @@ INDEX_HTML = '''<!DOCTYPE html>
         </div>
         <div id="image_id"></div>
         <button id="btn_load">Skip</button>
-        <button id="btn_save">Save</button>
+        <button id="btn_save">Save rotation</button>
+        <br><br>
+        Set quality:<br>
+        <button onclick="setQuality(0)">Bad quality</button>
+        <button onclick="setQuality(1)">Partial quality</button>
+        <button onclick="setQuality(2)">Good quality</button>
         
         <style>
             #viewer {
@@ -152,6 +157,17 @@ INDEX_HTML = '''<!DOCTYPE html>
                 }
             };
 
+            function setQuality(quality) {
+                var request = new XMLHttpRequest();
+                request.open('POST', 'save_quality?id=' + currentId + '&quality=' + quality);
+                request.onload = function() {
+                    if (request.status === 200) {
+                        requestImage();
+                    }
+                };
+                request.send();
+            }
+
             btnSave.onclick = function() {
                 var request = new XMLHttpRequest();
                 request.open('POST', 'save_rotation?id=' + currentId + '&rotation=' + currentRotation);
@@ -232,13 +248,11 @@ def save_rotation():
 @app.route('/save_quality', methods=['POST'])
 def save_quality():
     image_id = request.args.get('id')
-    print(image_id)
     if image_id in existing_ids_quality:
         print("Skipping duplicate id.")
         return 'ok', 200
     existing_ids_quality.add(image_id)
     quality = request.args.get('quality')
-    print(image_id, quality)
     quality_file.write('{:s},{:s}\n'.format(image_id, quality))
     quality_file.flush()
     return 'ok', 200
