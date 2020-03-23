@@ -24,6 +24,9 @@ ROTATION_DATA_FILENAME = 'data/rotations.csv'
 QUALITY_DATA_FILENAME = 'data/quality.csv'
 ROTATIONS_CALCULATED_FILENAME = 'data/rotations_calculated.csv'
 
+LATENT_CODES_EMBEDDED_FILE_NAME = 'data/latent_codes_embedded.npy'
+LATENT_CODES_EMBEDDED_MOVED_FILE_NAME = 'data/latent_codes_embedded_moved.npy'
+
 USE_VARIATIONAL_AUTOENCODER = True
 AUTOENCODER_FILENAME = 'trained_models/variational_autoencoder.to' if USE_VARIATIONAL_AUTOENCODER else 'trained_models/autoencoder.to'
 

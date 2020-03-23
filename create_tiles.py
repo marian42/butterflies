@@ -142,7 +142,7 @@ def get_kmeans(depth, x, y):
 
 if __name__ == '__main__':
     latent_codes = np.load('data/latent_codes.npy')
-    codes = np.load('data/latent_codes_embedded_moved.npy')
+    codes = np.load(LATENT_CODES_EMBEDDED_MOVED_FILE_NAME)
 
     from image_loader import ImageDataset
     dataset = ImageDataset()

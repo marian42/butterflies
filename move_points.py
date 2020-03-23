@@ -100,7 +100,7 @@ def process_cluster(points, cluster_label):
     return points, cluster_label
 
 if __name__ == '__main__':
-    points = np.load('data/latent_codes_embedded.npy')
+    points = np.load(LATENT_CODES_EMBEDDED_FILE_NAME)
     min_value = np.min(points, axis=0)
     max_value = np.max(points, axis=0)
     points -= (max_value + min_value) / 2
@@ -156,11 +156,10 @@ if __name__ == '__main__':
 
     move_points(points, verbose=True, max_iter=80)
     
-    OUTPUT_FILENAME = 'data/latent_codes_embedded_moved.npy'
     min_value = np.min(points, axis=0)
     max_value = np.max(points, axis=0)
     points -= (max_value + min_value) / 2
     points *= 0.99 / np.max(points, axis=0)
 
-    np.save(OUTPUT_FILENAME, points)
-    print("Saved to {:s}.".format(OUTPUT_FILENAME))
+    np.save(LATENT_CODES_EMBEDDED_MOVED_FILE_NAME, points)
+    print("Saved to {:s}.".format(LATENT_CODES_EMBEDDED_MOVED_FILE_NAME))

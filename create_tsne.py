@@ -1,4 +1,5 @@
 import numpy as np
+from config import *
 
 METHOD = 2
 
@@ -17,4 +18,4 @@ elif METHOD == 2:
     from openTSNE import TSNE
     embedded = TSNE().fit(latent_codes)
 
-np.save('data/latent_codes_embedded.npy', embedded)
+np.save(LATENT_CODES_EMBEDDED_FILE_NAME, embedded)

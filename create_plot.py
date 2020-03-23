@@ -3,8 +3,9 @@ import matplotlib.pyplot as plt
 import sys
 import os
 from tqdm import tqdm
+from config import *
 
-codes = np.load('data/latent_codes_embedded.npy')
+codes = np.load(LATENT_CODES_EMBEDDED_FILE_NAME)
 
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 
