@@ -6,6 +6,7 @@ import random
 from config import *
 import itertools
 import torch
+from skimage import io
 
 class QualityDataset(Dataset):
     def __init__(self, return_hashes=False):
