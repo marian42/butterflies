@@ -4,8 +4,15 @@ import metadata
 import random
 import csv
 from config import *
+import numpy as np
+import shutil
+from image_loader import ImageDataset
 
 items = metadata.load()
+
+latent_codes_embedded = np.load(LATENT_CODES_EMBEDDED_MOVED_FILE_NAME)
+latent_codes_embedded[:, 1] *= -1
+image_dataset = ImageDataset()
 
 app = Flask(__name__)
 
@@ -235,5 +242,30 @@ def save_quality():
     quality_file.write('{:s},{:s}\n'.format(image_id, quality))
     quality_file.flush()
     return 'ok', 200
+
+@app.route('/save_quality_batch', methods=['POST'])
+def save_quality_batch():
+    x1 = float(request.args.get('x1'))
+    x2 = float(request.args.get('x2'))
+    y1 = float(request.args.get('y1'))
+    y2 = float(request.args.get('y2'))
+    quality = request.args.get('quality')
+
+    mask = (latent_codes_embedded[:, 0] > x1) & (latent_codes_embedded[:, 0] < x2) & (latent_codes_embedded[:, 1] > y1) & (latent_codes_embedded[:, 1] < y2)
+    indices = np.nonzero(mask)[0]
+    ids = [image_dataset.hashes[i] for i in indices]
+
+    for image_id in ids:
+        if image_id in existing_ids_quality:
+            continue
+        existing_ids_quality.add(image_id)
+        quality_file.write('{:s},{:s}\n'.format(image_id, quality))
+    quality_file.flush()
+    return 'ok', 200
+
+@app.after_request
+def add_header(response):
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    return response
 
 app.run(host='0.0.0.0')

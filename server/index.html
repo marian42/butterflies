@@ -595,6 +595,16 @@
                 }
             };
             request.send();
+
+            function setViewQuality(quality) {
+                bounds = map.getBounds();
+                fetch("http://0.0.0.0:5000/save_quality_batch?x1=" + bounds.getWest() + "&x2=" + bounds.getEast() + "&y1=" + bounds.getSouth() + "&y2=" + bounds.getNorth() + "&quality=" + quality, {method: 'POST'})
+                .then(function(response) {
+                    if (response.status == 200) {
+                        console.log("Saved quality of current view.");
+                    }
+                });
+            }
         </script>
     </body>
 </html>
