@@ -41,7 +41,9 @@ INDEX_HTML = '''<!DOCTYPE html>
             <div class="hline" style="top:600px;"></div>
             <div class="vline" style="left:350px;"></div>
         </div>
-        <div id="image_id"></div>
+        <div>
+            <a href="#" id="image_id"></a>
+        </div>
         <button id="btn_load">Skip</button>
         <button id="btn_save">Save rotation</button>
         <br><br>
@@ -100,14 +102,15 @@ INDEX_HTML = '''<!DOCTYPE html>
             var image = document.getElementById('image');
             var btnLoad = document.getElementById('btn_load');
             var btnSave = document.getElementById('btn_save');
-            var currentIdDiv = document.getElementById('image_id');
+            var currentIdLink = document.getElementById('image_id');
             var currentId = null;
             var currentRotation = 0;
 
             function loadImage(imageId) {
                 currentId = imageId;
                 image.style.backgroundImage = 'url(image/' + currentId + '.png)';
-                image_id.innerHTML = currentId;
+                currentIdLink.innerHTML = currentId;
+                currentIdLink.href = 'image/' + currentId + '.png';
                 setRotation(60 * Math.random() - 30);
             }
 
