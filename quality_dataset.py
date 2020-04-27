@@ -19,6 +19,8 @@ class QualityDataset(Dataset):
         for row in reader:
             label = int(row[1])
             self.ids_by_label[label].append(row[0])
+
+        print('Items in quality ground truth dataset:', [len(x) for x in self.ids_by_label])
         
         self.shuffle()
 
