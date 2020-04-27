@@ -46,4 +46,7 @@ for index in tqdm(indices):
 
     label = torch.argmax(prediction).item()
 
+    if label == 2 and index % 10 != 0:
+        continue
+
     shutil.copyfile('data/images_rotated_128/{:s}.jpg'.format(hash), 'data/test/{:d}/{:s}.jpg'.format(label, hash))
