@@ -29,6 +29,12 @@ reader = csv.reader(quality_file)
 label_ids = set(row[0] for row in reader)
 quality_file.close
 
+for label in range(3):
+    try:
+        os.mkdir('data/test/{:d}'.format(label))
+    except FileExistsError:
+        pass
+
 for index in tqdm(indices):
     image, hash = dataset[index]
 
