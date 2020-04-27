@@ -7,6 +7,7 @@ from quality_network import QualityNetwork
 from config import *
 import torch
 import shutil
+import csv
 
 from image_loader import ImageDataset
 dataset = ImageDataset(return_hashes=True)
@@ -23,8 +24,16 @@ network.eval()
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+quality_file = open(QUALITY_DATA_FILENAME, 'r')
+reader = csv.reader(quality_file)
+label_ids = set(row[0] for row in reader)
+quality_file.close
+
 for index in tqdm(indices):
     image, hash = dataset[index]
+
+    if hash in label_ids:
+        continue
 
     with torch.no_grad():
         prediction = network(image.unsqueeze(0).to(device)).squeeze()
