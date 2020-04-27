@@ -232,7 +232,7 @@ def get_image(id):
 def get_id():
     while True:
         item = random.choice(items)
-        if os.path.exists(IMAGE_FILE_FORMAT.format(item.image_id)) and item.image_id not in existing_ids_rotation:
+        if os.path.exists(IMAGE_FILE_FORMAT.format(item.image_id)) and item.image_id not in existing_ids_rotation and item.image_id not in existing_ids_quality:
             return item.image_id
 
 
