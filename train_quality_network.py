@@ -20,7 +20,7 @@ except:
     print("Found no model, training a new one.")
 network.cuda()
 
-optimizer = optim.Adam(network.parameters(), lr=0.00005)
+optimizer = optim.Adam(network.parameters(), lr=0.00001)
 criterion = nn.BCELoss()
 
 def train():

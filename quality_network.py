@@ -1,27 +1,41 @@
-from autoencoder import EncoderBlock, Lambda
+from autoencoder import Lambda
 import torch.nn as nn
+import torch
 
-amcm = 8
-intermediate_size = 64
+def create_block(in_channels, out_channels=None):
+    if out_channels is None:
+        out_channels = in_channels
+    return nn.Sequential(
+        nn.Conv2d(in_channels = in_channels, out_channels = out_channels, kernel_size = 3, padding=1),
+        nn.BatchNorm2d(out_channels),
+        nn.ReLU(inplace=True)
+    )
 
 def QualityNetwork(output_size = 3):
     return nn.Sequential(
-        nn.Conv2d(in_channels = 3, out_channels = 1 * amcm, kernel_size = 3, padding=1),
-        nn.BatchNorm2d(1 * amcm),
-        nn.ReLU(inplace=True),
+        nn.AvgPool2d(2), # 128 -> 64
 
-        EncoderBlock(1 * amcm, 1 * amcm), # 128 -> 64
-        EncoderBlock(1 * amcm, 1 * amcm), # 64 -> 32
-        EncoderBlock(1 * amcm), # 32 -> 16
-        EncoderBlock(2 * amcm), # 16 -> 8
-        EncoderBlock(4 * amcm), # 8 -> 4
-        EncoderBlock(8 * amcm, intermediate_size, bottleneck=True), # 4 -> 1
+        create_block(3, 8),
+        nn.MaxPool2d(2), # 64 -> 32
+
+        create_block(8, 16),
+        nn.MaxPool2d(2), # 32 -> 16
+
+        create_block(16, 16),
+        nn.MaxPool2d(2), # 16 -> 8
+
+
+        create_block(16, 16),
+        nn.MaxPool2d(2), # 8 -> 4
+
+        create_block(16, 32),
+        nn.MaxPool2d(2), # 4 -> 2
 
         Lambda(lambda x: x.reshape(x.shape[0], -1)),
 
-        nn.Linear(intermediate_size, intermediate_size),
-        nn.BatchNorm1d(intermediate_size),
+        nn.Linear(128, 64),
+        nn.BatchNorm1d(64),
         nn.ReLU(inplace=True),
-        nn.Linear(intermediate_size, output_size),
-        nn.Softmax(dim=1)
+        nn.Linear(64, output_size),
+        nn.Softmax(dim=1),
     )
