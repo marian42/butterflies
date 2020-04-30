@@ -10,8 +10,11 @@ from skimage import io
 import multiprocessing
 import traceback
 import numpy as np
+from skimage import io
 
 SKIP_ITEM = 0
+
+SIZE_BLOCK = 128
 
 class RawImageDataset(Dataset):
     def __init__(self):
@@ -30,12 +33,24 @@ class RawImageDataset(Dataset):
             return SKIP_ITEM
 
         try:
-            image = load_image(image_file_name)
+            image = io.imread(image_file_name)
+            image = image.transpose((2, 0, 1)).astype(np.float32) / 255
+
+            input_width = image.shape[2]
+            input_height = image.shape[1]
+
+            width = SIZE_BLOCK * (input_width // SIZE_BLOCK + 1)
+            height = SIZE_BLOCK * (input_height // SIZE_BLOCK + 1)
+
+            result = np.ones((3, height, width), dtype=np.float32)
+            result[:, :image.shape[1], :image.shape[2]] = image
+
+            image = torch.from_numpy(result)
         except:
             print("Could not open {:s}.".format(image_file_name))
             return SKIP_ITEM
         
-        return image, result_file_name
+        return image, result_file_name, input_width, input_height
 
 def remove_smaller_components(mask):
     _, labels, stats, _ = cv2.connectedComponentsWithStats(mask.astype(np.uint8), connectivity=4)
@@ -45,8 +60,6 @@ def remove_smaller_components(mask):
     mask[labels != max_label] = 0
 
 def save_image(image, mask, file_name):
-    clipping_range=0.2
-
     image = image.squeeze(0).numpy()
 
     mask = mask.squeeze(0).numpy()
@@ -110,11 +123,13 @@ if __name__ == '__main__':
             progress.update()
             continue
 
-        image, result_file_name = item
+        image, result_file_name, width, height = item
 
         try:
             with torch.no_grad():
                 mask = classifier(image.to(device)).squeeze(0).cpu()
+            image = image[:, :height, :width]
+            mask = mask[:height, :width]
             pool.apply_async(save_image, args=(image, mask, result_file_name[0]), callback=on_complete)
         except Exception as exception:
             if isinstance(exception, KeyboardInterrupt):
