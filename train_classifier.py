@@ -9,6 +9,7 @@ import sys
 from torch.utils.data import DataLoader
 from torchvision import utils
 from tqdm import tqdm
+from skimage import io
 
 from classifier import Classifier
 
@@ -39,8 +40,10 @@ def save_example(epoch, hash, image, mask):
     mask[w:, h:] = mask_binary[w:, h:]
     result = image.clone().squeeze(0)
     result *= mask
+    result = result.cpu().numpy().transpose((1, 2, 0)) * 255
+    result = result.astype(np.uint8)
 
-    utils.save_image(result, 'data/test/{:s}.png'.format(hash))
+    io.imsave('data/test/{:s}.jpg'.format(hash), result, quality=95)
 
 def train():
     total_batches = 0
@@ -61,7 +64,7 @@ def train():
 
             if total_batches % 10 == 0 and SAVE_EXAMPLES:
                 i = 0
-                save_example(epoch, hash[i], image[i, :, :], output[i, :, :])
+                save_example(epoch, hash[i], image[i, :, :], output[i, :, :].detach())
             total_batches += 1
         print(epoch, np.mean(loss_history))
         torch.save(classifier.state_dict(), CLASSIFIER_FILENAME)
