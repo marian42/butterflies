@@ -15,7 +15,7 @@ from classifier import Classifier
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 CLASSIFIER_FILENAME = 'trained_models/classifier.to'
 
-SAVE_EXAMPLES = False
+SAVE_EXAMPLES = True
 
 classifier = Classifier()
 try:
@@ -43,6 +43,7 @@ def save_example(epoch, hash, image, mask):
     utils.save_image(result, 'data/test/{:s}.png'.format(hash))
 
 def train():
+    total_batches = 0
     for epoch in count():
         loss_history = []
         for batch in tqdm(data_loader):
@@ -58,9 +59,10 @@ def train():
             error = loss.item()
             loss_history.append(error)
 
-            if epoch % 100 == 0 and SAVE_EXAMPLES:
-                for i in range(image.shape[0]):
-                    save_example(epoch, hash[i], image[i, :, :], output[i, :, :])
+            if total_batches % 10 == 0 and SAVE_EXAMPLES:
+                i = 0
+                save_example(epoch, hash[i], image[i, :, :], output[i, :, :])
+            total_batches += 1
         print(epoch, np.mean(loss_history))
         torch.save(classifier.state_dict(), CLASSIFIER_FILENAME)
 
