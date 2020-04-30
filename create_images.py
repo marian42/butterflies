@@ -2,7 +2,6 @@ import glob
 from torchvision import utils
 from torch.utils.data import DataLoader, Dataset
 from shutil import copyfile
-from mask_loader import load_image
 from tqdm import tqdm
 import os
 import cv2
@@ -11,6 +10,7 @@ import multiprocessing
 import traceback
 import numpy as np
 from skimage import io
+import torch
 
 SKIP_ITEM = 0
 
@@ -20,6 +20,7 @@ class RawImageDataset(Dataset):
     def __init__(self):
         file_names = file_names = glob.glob('data/raw/**.jpg', recursive=True)
         self.hashes = [f.split('/')[-1][:-4] for f in file_names]
+        self.skip_existing_files = True
         
     def __len__(self):
         return len(self.hashes)
@@ -29,7 +30,7 @@ class RawImageDataset(Dataset):
         image_file_name = 'data/raw/{:s}.jpg'.format(hash)
         result_file_name = 'data/images_alpha/{:s}.png'.format(hash)
 
-        if os.path.exists(result_file_name):
+        if self.skip_existing_files and os.path.exists(result_file_name):
             return SKIP_ITEM
 
         try:

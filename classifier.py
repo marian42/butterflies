@@ -72,7 +72,7 @@ class Block(nn.Module):
 
 def remove_smaller_components(array):
     mask = (array > 0.5)
-    _, labels, stats, _ = cv2.connectedComponentsWithStats(mask.squeeze().cpu().numpy(), connectivity=4)
+    _, labels, stats, _ = cv2.connectedComponentsWithStats(mask.squeeze().cpu().numpy().astype(np.uint8), connectivity=4)
     max_label = np.argmax(stats[1:, 4]) + 1
     array[torch.from_numpy(labels != max_label).unsqueeze(0)] = 0
 
