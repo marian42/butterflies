@@ -13,7 +13,7 @@ import numpy as np
 
 SKIP_ITEM = 0
 
-class ImageDataset(Dataset):
+class RawImageDataset(Dataset):
     def __init__(self):
         file_names = file_names = glob.glob('data/raw/**.jpg', recursive=True)
         self.hashes = [f.split('/')[-1][:-4] for f in file_names]
@@ -92,7 +92,7 @@ if __name__ == '__main__':
     classifier.load_state_dict(torch.load(CLASSIFIER_FILENAME))
     classifier.eval()
 
-    dataset = ImageDataset()
+    dataset = RawImageDataset()
     data_loader = DataLoader(dataset, batch_size=1, shuffle=True, num_workers=8)
 
     worker_count = os.cpu_count()
