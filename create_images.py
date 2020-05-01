@@ -125,11 +125,12 @@ if __name__ == '__main__':
             continue
 
         image, result_file_name, width, height = item
+        width, height = width[0].item(), height[0].item()
 
         try:
             with torch.no_grad():
-                mask = classifier(image.to(device)).squeeze(0).cpu()
-            image = image[:, :height, :width]
+                mask = classifier(image.to(device)).squeeze(0).squeeze(0).cpu()
+            image = image[0, :, :height, :width]
             mask = mask[:height, :width]
             pool.apply_async(save_image, args=(image, mask, result_file_name[0]), callback=on_complete)
         except Exception as exception:
