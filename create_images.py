@@ -15,6 +15,7 @@ import torch
 SKIP_ITEM = 0
 
 SIZE_BLOCK = 128
+MIN_SIZE = 128
 
 class RawImageDataset(Dataset):
     def __init__(self):
@@ -78,7 +79,7 @@ def save_image(image, mask, file_name):
     mask = mask[top_left[0]:bottom_right[0], top_left[1]:bottom_right[1]]
     image = image[:, top_left[0]:bottom_right[0], top_left[1]:bottom_right[1]]
 
-    if image.shape[1] < 10 or image.shape[2] < 10:
+    if image.shape[1] < MIN_SIZE or image.shape[2] < MIN_SIZE:
         print("Found nothing.")
         return
 
