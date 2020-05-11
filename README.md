@@ -13,6 +13,8 @@ Pre-trained models for all three neural networks are included.
 
 ## Usage
 
+(This is currently outdated and will be updated soon to reflect changes in the code)
+
 This section explains how to recreate the visualization on your machine.
 You need a GPU with at least 8 GB of VRAM and ~650 GB of disk space.
 The full dataset contains 716,000 images.
