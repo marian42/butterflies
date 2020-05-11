@@ -16,7 +16,7 @@ image_dataset = ImageDataset()
 
 app = Flask(__name__)
 
-IMAGE_FILE_FORMAT = 'data/images_alpha/{:s}.png'
+IMAGE_FILE_FORMAT = 'data/images_alpha/{:s}.webp'
 
 INDEX_HTML = '''<!DOCTYPE html>
 <html lang="en">
@@ -108,9 +108,9 @@ INDEX_HTML = '''<!DOCTYPE html>
 
             function loadImage(imageId) {
                 currentId = imageId;
-                image.style.backgroundImage = 'url(image/' + currentId + '.png)';
+                image.style.backgroundImage = 'url(image/' + currentId + '.webp)';
                 currentIdLink.innerHTML = currentId;
-                currentIdLink.href = 'image/' + currentId + '.png';
+                currentIdLink.href = 'image/' + currentId + '.webp';
                 setRotation(60 * Math.random() - 30);
             }
 
@@ -221,10 +221,10 @@ quality_file = open(QUALITY_DATA_FILENAME, 'a')
 def index():
     return INDEX_HTML
 
-@app.route('/image/<id>.png')
+@app.route('/image/<id>.webp')
 def get_image(id):
     try:
-        return send_file(IMAGE_FILE_FORMAT.format(id))
+        return send_file(IMAGE_FILE_FORMAT.format(id), mimetype='image/webp')
     except FileNotFoundError:
         return "File not found", 404
 
