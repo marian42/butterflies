@@ -11,6 +11,7 @@ import traceback
 import numpy as np
 from skimage import io
 import torch
+import webp
 
 SKIP_ITEM = 0
 
@@ -29,7 +30,7 @@ class RawImageDataset(Dataset):
     def __getitem__(self, index):
         hash = self.hashes[index]
         image_file_name = 'data/raw/{:s}.jpg'.format(hash)
-        result_file_name = 'data/images_alpha/{:s}.png'.format(hash)
+        result_file_name = 'data/images_alpha/{:s}.webp'.format(hash)
 
         if self.skip_existing_files and os.path.exists(result_file_name):
             return SKIP_ITEM
@@ -92,7 +93,7 @@ def save_image(image, mask, file_name):
     result[:3, y:y+image.shape[1], x:x+image.shape[2]] = image
     result[3, y:y+image.shape[1], x:x+image.shape[2]] = mask
 
-    io.imsave(file_name, (result.transpose((1, 2, 0)) * 255).astype(np.uint8))
+    webp.imwrite(file_name, (result.transpose((1, 2, 0)) * 255).astype(np.uint8).copy(order='C'), quality=95)
 
 if __name__ == '__main__':
     import torch
