@@ -66,12 +66,16 @@ def save_image(image, mask, file_name):
     image = image.squeeze(0).numpy()
 
     mask = mask.squeeze(0).numpy()
-    mask = mask > 0.5
-    remove_smaller_components(mask)
-    coords = np.stack(mask.nonzero())
+    mask -= 0.5
+    mask /= 0.35
+    mask += 0.5
+    mask = np.clip(mask, 0, 1)
+    mask_binary = mask > 0.001
+    remove_smaller_components(mask_binary)
+    mask *= mask_binary # remove unconnected components
+    coords = np.stack(mask_binary.nonzero())
 
     if coords.size == 0:
-        print("Found nothing.")
         return
 
     top_left = np.min(coords, axis=1)
@@ -81,18 +85,15 @@ def save_image(image, mask, file_name):
     image = image[:, top_left[0]:bottom_right[0], top_left[1]:bottom_right[1]]
 
     if image.shape[1] < MIN_SIZE or image.shape[2] < MIN_SIZE:
-        print("Found nothing.")
         return
-
-    image = image * mask + (1.0 - mask) * 1
-
+    
     new_size = int(max(image.shape[1], image.shape[2]))    
     result = np.ones((4, new_size, new_size))
     result[3, :, :] = 0
     y, x = (new_size - image.shape[1]) // 2, (new_size - image.shape[2]) // 2
     result[:3, y:y+image.shape[1], x:x+image.shape[2]] = image
     result[3, y:y+image.shape[1], x:x+image.shape[2]] = mask
-
+    
     webp.imwrite(file_name, (result.transpose((1, 2, 0)) * 255).astype(np.uint8).copy(order='C'), quality=95)
 
 if __name__ == '__main__':
