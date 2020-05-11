@@ -28,7 +28,7 @@ from mask_loader import MaskDataset
 dataset = MaskDataset()
 data_loader = DataLoader(dataset, batch_size=8, shuffle=True, num_workers=8)
 
-optimizer = optim.Adam(classifier.parameters(), lr=0.0002)
+optimizer = optim.Adam(classifier.parameters(), lr=0.0001)
 criterion = nn.BCELoss()
 
 def save_example(epoch, hash, image, mask):
