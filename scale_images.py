@@ -74,6 +74,8 @@ def handle_image(hash, angle):
         traceback.print_exc()
 
 if __name__ == '__main__':
+    os.makedirs(OUTPUT_DIRECTORY, exist_ok=True)
+
     if ROTATE:
         from rotation_network import RotationNetwork
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

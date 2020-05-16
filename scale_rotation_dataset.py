@@ -11,6 +11,8 @@ dataset = RotationDataset()
 
 file_names = ['data/images_alpha/{:s}.webp'.format(id) for id in dataset.image_ids]
 
+os.makedirs('data/images_alpha/', exist_ok=True)
+
 for file_name in tqdm(file_names):    
     hash = file_name.split('/')[-1][:-5]
     out_file_name = 'data/images_{:d}/{:s}.jpg'.format(OUTPUT_RESOLUTION, hash)
