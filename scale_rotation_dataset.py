@@ -24,7 +24,7 @@ for file_name in tqdm(file_names):
         image = image[:, :, :3] * alpha_mask / 255 + (255.0 - alpha_mask)
 
         image = transform.resize(image, (OUTPUT_RESOLUTION, OUTPUT_RESOLUTION), preserve_range=True).astype(np.uint8)
-        io.imsave(out_file_name, image)
+        io.imsave(out_file_name, image, quality=98)
     except Exception as exception:
         if isinstance(exception, KeyboardInterrupt) or True:
             raise exception

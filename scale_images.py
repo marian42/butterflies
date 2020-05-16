@@ -68,7 +68,7 @@ def handle_image(hash, angle):
             image = clip_image(image) * 255
 
         image = transform.resize(image, (OUTPUT_RESOLUTION, OUTPUT_RESOLUTION), preserve_range=True).astype(np.uint8)
-        io.imsave(get_result_file_name(hash), image)
+        io.imsave(get_result_file_name(hash), image, quality=98)
     except:
         print("Error while handling {:s}".format(hash))
         traceback.print_exc()
