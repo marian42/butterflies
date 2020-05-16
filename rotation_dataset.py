@@ -9,7 +9,6 @@ import random
 import math
 from config import *
 
-USE_ALPHA_IMAGES = False
 WHITE_THRESHOLD = 0.95
 
 def clip_image(image):
@@ -37,11 +36,11 @@ class RotationDataset(Dataset):
         return len(self.image_ids)
 
     def __getitem__(self, index):
-        file_name = ('data/images_alpha/{:s}.png' if USE_ALPHA_IMAGES else 'data/images_128/{:s}.jpg').format(self.image_ids[index])
+        file_name = ('data/images_128/{:s}.jpg').format(self.image_ids[index])
         image = io.imread(file_name)
 
         angle = random.random() * 10 - 5 + random.randint(0, 3) * 90
-        image = transform.rotate(image[:, :, :3] if USE_ALPHA_IMAGES else image, -self.angles[index] + angle, resize=True, clip=True, mode='constant', cval=1)
+        image = transform.rotate(image, -self.angles[index] + angle, resize=True, clip=True, mode='constant', cval=1)
         image = torch.tensor(image.transpose((2, 0, 1)), dtype=torch.float32)
         image = clip_image(image)
         image = F.adaptive_avg_pool2d(image, (ROTATION_NETWORK_RESOLUTION, ROTATION_NETWORK_RESOLUTION))
