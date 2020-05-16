@@ -9,15 +9,19 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 import multiprocessing
 from config import *
+import traceback
+import webp
 
 OUTPUT_RESOLUTION = 128
 ROTATE = True
+
+OUTPUT_DIRECTORY = 'data/images{:s}_{:d}/'.format('_rotated' if ROTATE else '', OUTPUT_RESOLUTION)
 
 ERROR_WHILE_LOADING = -1
 
 class ImageDataset(Dataset):
     def __init__(self, file_names):
-        self.hashes = [f.split('/')[-1][:-4] for f in file_names]
+        self.hashes = [f.split('/')[-1][:-5] for f in file_names]
         
     def __len__(self):
         return len(self.hashes)
@@ -26,9 +30,12 @@ class ImageDataset(Dataset):
         hash = self.hashes[index]
         
         try:
-            image = io.imread('data/images_alpha/{:s}.png'.format(hash))
+            image = webp.imread('data/images_alpha/{:s}.webp'.format(hash)).astype(np.float32) / 255
+            alpha_mask = image[:, :, 3][:, :, np.newaxis]
+            image = image[:, :, :3] * alpha_mask  + (1 - alpha_mask)
+
             image = transform.resize(image[:, :, :3], (ROTATION_NETWORK_RESOLUTION, ROTATION_NETWORK_RESOLUTION), preserve_range=True)
-            image = torch.tensor(image.transpose((2, 0, 1)), dtype=torch.float32) / 255
+            image = torch.tensor(image.transpose((2, 0, 1)), dtype=torch.float32)
         except:
             print("Error while loading {:s}".format(hash))
             return ERROR_WHILE_LOADING
@@ -48,12 +55,13 @@ def clip_image(image):
     return result
 
 def get_result_file_name(hash):
-    return 'data/images{:s}_{:d}/{:s}.jpg'.format('_rotated' if ROTATE else '', OUTPUT_RESOLUTION, hash)
+    return OUTPUT_DIRECTORY + '{:s}.jpg'.format(hash)
 
 def handle_image(hash, angle):
     try:
-        image = io.imread('data/images_alpha/{:s}.png'.format(hash))
-        image = image[:, :, :3]
+        image = webp.imread('data/images_alpha/{:s}.webp'.format(hash)).astype(np.float32) / 255
+        alpha_mask = image[:, :, 3][:, :, np.newaxis]
+        image = image[:, :, :3] * alpha_mask  + (1 - alpha_mask)
 
         if angle is not None:
             image = transform.rotate(image, angle, resize=True, clip=True, mode='constant', cval=1)
@@ -77,7 +85,7 @@ if __name__ == '__main__':
 
         rotation_file = open(ROTATIONS_CALCULATED_FILENAME, 'a')
 
-    file_names = glob.glob('data/images_alpha/**.png', recursive=True)
+    file_names = glob.glob('data/images_alpha/**.webp', recursive=True)
 
     worker_count = os.cpu_count()
     print("Using {:d} processes.".format(worker_count))
