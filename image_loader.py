@@ -3,12 +3,24 @@ from torch.utils.data import Dataset
 import numpy as np
 import glob
 from skimage import io
+import csv
+from config import QUALITY_CALCULATED_FILENAME
 
 class ImageDataset(Dataset):
-    def __init__(self, return_hashes=False):
-        file_names = glob.glob('data/images_rotated_128/**.jpg', recursive=True)
-        self.hashes = sorted([f.split('/')[-1][:-4] for f in file_names])
-        self.return_hashes = return_hashes        
+    def __init__(self, return_hashes=False, quality=None):
+        if quality is None:
+            file_names = glob.glob('data/images_rotated_128/**.jpg', recursive=True)
+            self.hashes = sorted([f.split('/')[-1][:-4] for f in file_names])
+        else:
+            file = open(QUALITY_CALCULATED_FILENAME, 'r')
+            reader = csv.reader(file)
+
+            if isinstance(quality, int):
+                self.hashes = [row[0] for row in reader if int(row[1]) == quality]
+            elif isinstance(quality, tuple) or isinstance(quality, list):
+                self.hashes = [row[0] for row in reader if int(row[1]) in quality]
+        
+        self.return_hashes = return_hashes
         
     def __len__(self):
         return len(self.hashes)

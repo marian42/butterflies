@@ -13,7 +13,7 @@ from config import *
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 from image_loader import ImageDataset
-dataset = ImageDataset()
+dataset = ImageDataset(quality=2)
 BATCH_SIZE = 32
 
 data_loader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=4)
