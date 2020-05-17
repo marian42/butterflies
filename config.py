@@ -23,6 +23,7 @@ METADATA_FILE_NAME = 'data/metadata.csv'
 ROTATION_DATA_FILENAME = 'data/rotations.csv'
 QUALITY_DATA_FILENAME = 'data/quality.csv'
 ROTATIONS_CALCULATED_FILENAME = 'data/rotations_calculated.csv'
+QUALITY_CALCULATED_FILENAME = 'data/quality_calculated.csv'
 
 LATENT_CODES_EMBEDDED_FILE_NAME = 'data/latent_codes_embedded.npy'
 LATENT_CODES_EMBEDDED_MOVED_FILE_NAME = 'data/latent_codes_embedded_moved.npy'
