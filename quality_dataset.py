@@ -7,6 +7,7 @@ from config import *
 import itertools
 import torch
 from skimage import io
+import os
 
 class QualityDataset(Dataset):
     def __init__(self, return_hashes=False):
@@ -18,7 +19,9 @@ class QualityDataset(Dataset):
 
         for row in reader:
             label = int(row[1])
-            self.ids_by_label[label].append(row[0])
+            id = row[0]
+            if os.path.isfile('data/images_rotated_128/{:s}.jpg'.format(id)):
+                self.ids_by_label[label].append(id)
 
         print('Items in quality ground truth dataset:', [len(x) for x in self.ids_by_label])
         
