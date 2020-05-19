@@ -1,7 +1,8 @@
 import torch
 from torch.utils.data import DataLoader
-from torchvision import utils
 from tqdm import tqdm
+from skimage import io
+import numpy as np
 
 from autoencoder import Autoencoder, LATENT_CODE_SIZE
 from config import *
@@ -11,7 +12,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 from image_loader import ImageDataset
 dataset = ImageDataset(return_hashes=True)
 
-SAMPLE_SIZE = 200
+SAMPLE_SIZE = 400
 indices = [int(i / SAMPLE_SIZE * len(dataset)) for i in range(SAMPLE_SIZE)]
 dataset.hashes = [dataset.hashes[i] for i in indices]
 
@@ -37,5 +38,6 @@ with torch.no_grad():
         for i in range(STEPS):
             output = autoencoder.decode(latent_code * (1.0 - i / (STEPS - 1)))
             result[:, :, 128 * (i + 1):128 * (i + 2)] = output
-
-        utils.save_image(result, 'data/test/{:s}.jpg'.format(hash))
+        
+        result = (torch.clamp(result, 0, 1).numpy() * 255).astype(np.uint8).transpose((1, 2, 0))
+        io.imsave('data/test/{:s}.jpg'.format(hash), result, quality=99)
