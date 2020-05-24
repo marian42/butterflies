@@ -145,7 +145,7 @@ if __name__ == '__main__':
     codes = np.load(LATENT_CODES_EMBEDDED_MOVED_FILE_NAME)
 
     from image_loader import ImageDataset
-    dataset = ImageDataset()
+    dataset = ImageDataset(quality=(1, 2))
 
     rotation_file = open(ROTATIONS_CALCULATED_FILENAME, 'r')
     reader = csv.reader(rotation_file)
