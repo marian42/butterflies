@@ -13,6 +13,7 @@ import json
 import csv
 from config import *
 import random
+import webp
 
 def create_tile(depth, x, y):
     tile_file_name = TILE_FILE_FORMAT.format('', depth + DEPTH_OFFSET, x, y)
@@ -64,8 +65,8 @@ def create_tile(depth, x, y):
                 index = indices[i]
                 image_id = hashes[index]
                 angle = rotations[image_id]
-                image_file_name = 'data/images_alpha/{:s}.png'.format(image_id)
-                image_original = Image.open(image_file_name)
+                image_file_name = 'data/images_alpha/{:s}.webp'.format(image_id)
+                image_original = Image.fromarray(webp.imread(image_file_name))
                 image_rotated = image_original.rotate(angle, resample=Image.BICUBIC, expand=True)
                 size = int(IMAGE_SIZE * image_rotated.size[0] / image_original.size[0])
                 image = image_rotated.resize((size, size), resample=Image.BICUBIC)
