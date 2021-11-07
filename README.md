@@ -55,6 +55,10 @@ The script takes ~24 hours for the full dataset and will use ~160 GB of disk spa
 You can stop and resume this script.
 
 7. Optional: Train the rotation network.
+
+This network predicts for each pixel whether it belongs to a butterfly or the background.
+Instead of trainign a new one, you can use the pre-trained model in this repository.
+
 - The network will use the rotation dataset in `data/rotations.csv`.
 Delete this file if you want to start from scratch.
 - Run `labels_server.py` and go to the displayed URL to manually annotate rotation data.
