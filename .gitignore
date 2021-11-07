@@ -7,3 +7,5 @@ __pycache__/
 
 .vscode/
 trained_models/checkpoints/
+
+trained_models/backup/
