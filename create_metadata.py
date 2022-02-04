@@ -3,35 +3,34 @@ import csv
 from config import *
 
 class DataProperty():
-    def __init__(self, column, name, type=str):
-        self.column = column
+    def __init__(self, header_name, name, type=str):
+        self.header_name = header_name
         self.name = name
         self.values = []
         self.type = type
 
 columns = [
-    DataProperty(17, 'Family'),
-    DataProperty(20, 'Genus'),
-    DataProperty(62, 'Species'),
-    DataProperty(31, 'Subspecies'),
-    DataProperty(25, 'Higher Classification'),
-    DataProperty(61, 'Sex'),
-    DataProperty(10, 'Latitude', float),
-    DataProperty(11, 'Longitude', float),
-    DataProperty(8, 'Country'),
-    DataProperty(59, 'Name'),
-    DataProperty(60, 'Name Author'),
-    DataProperty(9, 'Day'),
-    DataProperty(50, 'Month'),
-    DataProperty(70, 'Year'),
-    DataProperty(0, 'id', int),
-    DataProperty(51, 'Occurence ID'),
+    DataProperty('family', 'Family'),
+    DataProperty('genus', 'Genus'),
+    DataProperty('specificEpithet', 'Species'),
+    DataProperty('infraspecificEpithet', 'Subspecies'),
+    DataProperty('higherClassification', 'Higher Classification'),
+    DataProperty('sex', 'Sex'),
+    DataProperty('decimalLatitude', 'Latitude', float),
+    DataProperty('decimalLongitude', 'Longitude', float),
+    DataProperty('country', 'Country'),
+    DataProperty('scientificName', 'Name'),
+    DataProperty('scientificNameAuthorship', 'Name Author'),
+    DataProperty('day', 'Day'),
+    DataProperty('month', 'Month'),
+    DataProperty('year', 'Year'),
+    DataProperty('_id', 'id', int),
+    DataProperty('occurrenceID', 'Occurence ID'),
 ]
 
 file = open('data/occurrence.csv', 'r')
-reader = csv.reader(file)
+reader = csv.DictReader(file)
 reader_iterator = iter(reader)
-column_names = next(reader_iterator)
 
 row_by_id = {}
 
@@ -39,12 +38,12 @@ row_index = 0
 progress = tqdm(total=1039840, desc='Reading occurence.csv')
 
 for row in reader_iterator:
-    id = int(row[0])
+    id = int(row['_id'])
     progress.update()
-    if 'lepidoptera' not in row[25].lower():
+    if 'lepidoptera' not in row['higherClassification'].lower():
             continue
     for data_property in columns:
-        data_property.values.append(row[data_property.column].strip())
+        data_property.values.append(row[data_property.header_name].strip())
 
     row_by_id[id] = row_index
     row_index += 1
@@ -53,9 +52,8 @@ strings = []
 name_ids = {}
 
 file = open('data/multimedia.csv', 'r')
-reader = csv.reader(file)
+reader = csv.DictReader(file)
 reader_iterator = iter(reader)
-column_names = next(reader_iterator)
 
 progress = tqdm(total=2126980, desc='Reading multimedia.csv')
 
@@ -63,12 +61,12 @@ image_ids = []
 
 for row in reader_iterator:
     progress.update()
-    id = int(row[0])
-    image = row[5].split('/')[-3]
-    title = row[2]
+    id = int(row['_id'])
+    image = row['identifier'].split('/')[-1]
+    title = row['title']
     if '_label_' in title:
         continue
-    if row[3] != 'image/jpeg':
+    if row['format'] != 'image/jpeg':
         continue
     if id not in row_by_id:
         continue

@@ -3,6 +3,7 @@ from tqdm import tqdm
 from config import *
 
 MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+IMAGE_DIR = 'data/raw/'
 
 def try_make_int(string):
     try:
@@ -32,11 +33,11 @@ class Butterfly():
 
     @property
     def image_filename(self):
-        return 'data/raw/{:s}.jpg'.format(self.image_id)
+        return f'{IMAGE_DIR}{self.image_id}.jpg'
 
     @property
     def image_url(self):
-        return 'https://www.nhm.ac.uk/services/media-store/asset/{:s}/contents/preview'.format(self.image_id)
+        return f'https://data.nhm.ac.uk/media/{self.image_id}'
 
     @property
     def pretty_time(self):
@@ -45,9 +46,9 @@ class Butterfly():
         year = try_make_int(self.year)
 
         try:
-            if day is not None and month is not None and year is not None:
+            if None not in [month, day, year]:
                 return '{:s} {:d}, {:d}'.format(MONTHS[month], day, year)
-            elif month is not None and year is not None:
+            elif None not in [month, year]:
                 return '{:s} {:d}'.format(MONTHS[month - 1], year)
             elif year is not None:
                 return str(year)

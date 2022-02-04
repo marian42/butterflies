@@ -9,6 +9,9 @@ items = metadata.load()
 progress = tqdm(total=len(items))
 total_bytes = 0
 
+if not os.path.exists(metadata.IMAGE_DIR):
+    os.makedirs(metadata.IMAGE_DIR)
+
 for item in items:
     progress.update()
     file_name = item.image_filename
